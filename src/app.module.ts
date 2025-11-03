@@ -21,13 +21,12 @@ import { Leave } from './leaves/entities/leave.entity';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USERNAME'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME'),
+        url: config.get<string>('DATABASE_URL'),
         entities: [Team, TeamMember, Attendance, User, Leave],
-        synchronize: true, // auto sync DB tables (dev only)
+        ssl: {
+          rejectUnauthorized: false, // required for Neon/Supabase SSL
+        },
+        synchronize: true, // ⚠️ only for dev; use migrations in prod
       }),
     }),
 

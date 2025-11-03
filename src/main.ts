@@ -1,26 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import serverless from 'serverless-http';
 
-let cachedHandler: any;
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
 
-export const handler = async (event: any, context: any) => {
-  if (!cachedHandler) {
-    const app = await NestFactory.create(AppModule);
-    app.enableCors({
-      origin: [
-        'https://attendance-ui-portal.netlify.app',
-        'http://localhost:3000',
-      ],
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      credentials: true,
-    });
-    app.useGlobalPipes(new ValidationPipe());
-    await app.init();
+  app.enableCors({
+    origin: ['https://attendanceuiportal.netlify.app', 'http://localhost:3000'],
+  });
 
-    const expressApp = app.getHttpAdapter().getInstance();
-    cachedHandler = serverless(expressApp);
-  }
-  return cachedHandler(event, context);
-};
+  app.useGlobalPipes(new ValidationPipe());
+
+  const port = process.env.PORT || 8000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 Server running on port ${port}`);
+}
+bootstrap();
