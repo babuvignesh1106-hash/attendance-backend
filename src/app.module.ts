@@ -8,6 +8,8 @@ import { AttendanceModule } from './attendance/attendance.module';
 import { Attendance } from './attendance/entities/attendance.entity';
 import { AuthModule } from './auth/auth.module';
 import { User } from './user/user.entity';
+import { LeavesModule } from './leaves/leaves.module';
+import { Leave } from './leaves/entities/leave.entity';
 
 @Module({
   imports: [
@@ -24,13 +26,14 @@ import { User } from './user/user.entity';
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
-        entities: [Team, TeamMember, Attendance, User],
+        entities: [Team, TeamMember, Attendance, User, Leave],
         synchronize: true, // auto sync DB tables (dev only)
       }),
     }),
 
     TeamModule,
     AttendanceModule,
+    LeavesModule,
     AuthModule,
     // your custom module
   ],
