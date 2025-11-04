@@ -19,6 +19,8 @@ const auth_module_1 = require("./auth/auth.module");
 const user_entity_1 = require("./user/user.entity");
 const leaves_module_1 = require("./leaves/leaves.module");
 const leave_entity_1 = require("./leaves/entities/leave.entity");
+const permission_module_1 = require("./permission/permission.module");
+const permission_entity_1 = require("./permission/entities/permission.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -32,7 +34,7 @@ exports.AppModule = AppModule = __decorate([
                 useFactory: (config) => ({
                     type: 'postgres',
                     url: config.get('DATABASE_URL'),
-                    entities: [team_entity_1.Team, team_member_entity_1.TeamMember, attendance_entity_1.Attendance, user_entity_1.User, leave_entity_1.Leave],
+                    entities: [team_entity_1.Team, team_member_entity_1.TeamMember, attendance_entity_1.Attendance, user_entity_1.User, leave_entity_1.Leave, permission_entity_1.Permission],
                     ssl: {
                         rejectUnauthorized: false,
                     },
@@ -43,6 +45,7 @@ exports.AppModule = AppModule = __decorate([
             attendance_module_1.AttendanceModule,
             leaves_module_1.LeavesModule,
             auth_module_1.AuthModule,
+            permission_module_1.PermissionModule,
         ],
     })
 ], AppModule);
