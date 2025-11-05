@@ -1,23 +1,11 @@
-import { IsNotEmpty, IsString } from 'class-validator';
-
 export class CreateLeaveDto {
-  @IsString()
-  @IsNotEmpty()
   name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  leaveType: string;
-
-  @IsString()
-  @IsNotEmpty()
+  leaveType:
+    | 'Sick Leave'
+    | 'Personal Leave'
+    | 'Earned Leave'
+    | 'Maternity Leave';
   fromDate: string;
-
-  @IsString()
-  @IsNotEmpty()
   toDate: string;
-
-  @IsString()
-  @IsNotEmpty()
   reason: string;
 }

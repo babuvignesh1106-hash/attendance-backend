@@ -12,6 +12,8 @@ import { LeavesModule } from './leaves/leaves.module';
 import { Leave } from './leaves/entities/leave.entity';
 import { PermissionModule } from './permission/permission.module';
 import { Permission } from './permission/entities/permission.entity';
+import { LeaveBalance } from './leaves/entities/leave-balance.entity';
+import { LeaveRequest } from './leaves/entities/leave-request.entity';
 
 @Module({
   imports: [
@@ -24,7 +26,16 @@ import { Permission } from './permission/entities/permission.entity';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.get<string>('DATABASE_URL'),
-        entities: [Team, TeamMember, Attendance, User, Leave, Permission],
+        entities: [
+          Team,
+          TeamMember,
+          Attendance,
+          User,
+          Leave,
+          LeaveRequest,
+          LeaveBalance,
+          Permission,
+        ],
         ssl: {
           rejectUnauthorized: false, // required for Neon/Supabase SSL
         },

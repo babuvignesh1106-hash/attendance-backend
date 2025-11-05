@@ -1,3 +1,4 @@
+// src/leaves/entities/leave.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
