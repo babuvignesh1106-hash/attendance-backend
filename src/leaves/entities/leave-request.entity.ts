@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+// src/leaves/entities/leave-request.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class LeaveRequest {
@@ -20,6 +26,9 @@ export class LeaveRequest {
   @Column()
   reason: string;
 
-  @Column({ default: 'Pending' })
+  @Column()
   status: string;
+
+  @CreateDateColumn() // automatically set when inserted
+  submittedAt: Date;
 }

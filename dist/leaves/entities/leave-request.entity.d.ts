@@ -6,4 +6,5 @@ export declare class LeaveRequest {
     toDate: string;
     reason: string;
     status: string;
+    submittedAt: Date;
 }

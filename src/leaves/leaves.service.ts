@@ -39,11 +39,10 @@ export class LeavesService {
       Math.ceil(
         (new Date(toDate).getTime() - new Date(fromDate).getTime()) /
           (1000 * 60 * 60 * 24),
-      ) + 1; // inclusive
+      ) + 1;
 
     const balance = await this.getBalance(name);
 
-    // Use union type: string | null
     let errorMessage: string | null = null;
 
     switch (leaveType) {
@@ -75,22 +74,18 @@ export class LeavesService {
         errorMessage = 'Invalid leave type.';
     }
 
-    // If there was an error, return it with current balance
     if (errorMessage) {
-      return {
-        message: errorMessage,
-        balance,
-      };
+      return { message: errorMessage, balance };
     }
 
-    // Save updated balance
     await this.leaveBalanceRepo.save(balance);
 
-    // Create leave request
     const leave = this.leaveRequestRepo.create({
       ...createLeaveDto,
       status: 'Pending',
+      submittedAt: new Date(), // <-- added
     });
+
     const savedLeave = await this.leaveRequestRepo.save(leave);
 
     return {

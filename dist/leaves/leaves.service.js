@@ -74,15 +74,13 @@ let LeavesService = class LeavesService {
                 errorMessage = 'Invalid leave type.';
         }
         if (errorMessage) {
-            return {
-                message: errorMessage,
-                balance,
-            };
+            return { message: errorMessage, balance };
         }
         await this.leaveBalanceRepo.save(balance);
         const leave = this.leaveRequestRepo.create({
             ...createLeaveDto,
             status: 'Pending',
+            submittedAt: new Date(),
         });
         const savedLeave = await this.leaveRequestRepo.save(leave);
         return {

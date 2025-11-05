@@ -19,6 +19,7 @@ let LeaveRequest = class LeaveRequest {
     toDate;
     reason;
     status;
+    submittedAt;
 };
 exports.LeaveRequest = LeaveRequest;
 __decorate([
@@ -46,9 +47,13 @@ __decorate([
     __metadata("design:type", String)
 ], LeaveRequest.prototype, "reason", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: 'Pending' }),
+    (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], LeaveRequest.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], LeaveRequest.prototype, "submittedAt", void 0);
 exports.LeaveRequest = LeaveRequest = __decorate([
     (0, typeorm_1.Entity)()
 ], LeaveRequest);
