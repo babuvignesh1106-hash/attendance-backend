@@ -7,7 +7,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      'https://attendance-ui-portal.netlify.app', // ✅ correct domain
+      'https://attendance-nine-beryl.vercel.app', // ✅ correct domain
       'http://localhost:3000', // for local dev
       'http://localhost:5173', // if using Vite for React
     ],
