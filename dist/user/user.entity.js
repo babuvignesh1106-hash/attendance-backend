@@ -13,15 +13,22 @@ exports.User = void 0;
 const typeorm_1 = require("typeorm");
 let User = class User {
     id;
+    name;
     email;
     password;
-    name;
+    role;
+    designation;
+    employeeId;
 };
 exports.User = User;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
 ], User.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], User.prototype, "name", void 0);
 __decorate([
     (0, typeorm_1.Column)({ unique: true }),
     __metadata("design:type", String)
@@ -31,10 +38,18 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "password", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: 'employee' }),
+    __metadata("design:type", String)
+], User.prototype, "role", void 0);
+__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], User.prototype, "name", void 0);
+], User.prototype, "designation", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "employeeId", void 0);
 exports.User = User = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)('user')
 ], User);
 //# sourceMappingURL=user.entity.js.map

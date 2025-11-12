@@ -7,7 +7,7 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.enableCors({
         origin: [
-            'https://attendance-ui-portal.netlify.app',
+            'https://attendance-nine-beryl.vercel.app',
             'http://localhost:3000',
             'http://localhost:5173',
         ],

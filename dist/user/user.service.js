@@ -22,12 +22,15 @@ let UserService = class UserService {
     constructor(userRepository) {
         this.userRepository = userRepository;
     }
-    findByEmail(email) {
+    async createUser(data) {
+        const user = this.userRepository.create(data);
+        return this.userRepository.save(user);
+    }
+    async findByEmail(email) {
         return this.userRepository.findOne({ where: { email } });
     }
-    createUser(userData) {
-        const user = this.userRepository.create(userData);
-        return this.userRepository.save(user);
+    async findAll() {
+        return this.userRepository.find();
     }
 };
 exports.UserService = UserService;
