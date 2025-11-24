@@ -23,6 +23,10 @@ const permission_module_1 = require("./permission/permission.module");
 const permission_entity_1 = require("./permission/entities/permission.entity");
 const leave_balance_entity_1 = require("./leaves/entities/leave-balance.entity");
 const leave_request_entity_1 = require("./leaves/entities/leave-request.entity");
+const payslip_module_1 = require("./payslip/payslip.module");
+const payslip_entity_1 = require("./payslip/payslip.entity");
+const staff_module_1 = require("./staff/staff.module");
+const staff_entity_1 = require("./staff/entities/staff.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -45,6 +49,8 @@ exports.AppModule = AppModule = __decorate([
                         leave_request_entity_1.LeaveRequest,
                         leave_balance_entity_1.LeaveBalance,
                         permission_entity_1.Permission,
+                        payslip_entity_1.Payslip,
+                        staff_entity_1.Staff,
                     ],
                     ssl: {
                         rejectUnauthorized: false,
@@ -57,6 +63,9 @@ exports.AppModule = AppModule = __decorate([
             leaves_module_1.LeavesModule,
             auth_module_1.AuthModule,
             permission_module_1.PermissionModule,
+            payslip_module_1.PayslipModule,
+            staff_module_1.StaffModule,
+            staff_module_1.StaffModule,
         ],
     })
 ], AppModule);

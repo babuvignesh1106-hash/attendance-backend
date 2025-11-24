@@ -14,6 +14,10 @@ import { PermissionModule } from './permission/permission.module';
 import { Permission } from './permission/entities/permission.entity';
 import { LeaveBalance } from './leaves/entities/leave-balance.entity';
 import { LeaveRequest } from './leaves/entities/leave-request.entity';
+import { PayslipModule } from './payslip/payslip.module';
+import { Payslip } from './payslip/payslip.entity';
+import { StaffModule } from './staff/staff.module';
+import { Staff } from './staff/entities/staff.entity';
 
 @Module({
   imports: [
@@ -35,6 +39,8 @@ import { LeaveRequest } from './leaves/entities/leave-request.entity';
           LeaveRequest,
           LeaveBalance,
           Permission,
+          Payslip,
+          Staff,
         ],
         ssl: {
           rejectUnauthorized: false, // required for Neon/Supabase SSL
@@ -48,6 +54,9 @@ import { LeaveRequest } from './leaves/entities/leave-request.entity';
     LeavesModule,
     AuthModule,
     PermissionModule,
+    PayslipModule,
+    StaffModule,
+    StaffModule,
     // your custom module
   ],
 })
