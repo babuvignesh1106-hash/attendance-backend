@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Attendance } from './entities/attendance.entity';
 
 @Injectable()
@@ -10,53 +10,59 @@ export class AttendanceService {
     private readonly attendanceRepo: Repository<Attendance>,
   ) {}
 
-  async createAttendance(data: Partial<Attendance>) {
-    // -----------------------------------------
-    // 🚀 Ensure startTime exists
-    // -----------------------------------------
-    if (!data.startTime) {
-      throw new BadRequestException('startTime is required');
+  // CHECK-IN
+  async checkIn(username: string) {
+    const openRecord = await this.attendanceRepo.findOne({
+      where: { username, endTime: IsNull() },
+    });
+
+    if (openRecord) {
+      throw new BadRequestException('You already have an active attendance.');
     }
 
-    // Convert startTime to Date
-    if (!(data.startTime instanceof Date)) {
-      data.startTime = new Date(data.startTime);
+    const newRecord = this.attendanceRepo.create({
+      username,
+      startTime: new Date(),
+      breakCount: 0,
+      totalBreakDuration: 0,
+      workedDuration: 0,
+    });
+
+    return await this.attendanceRepo.save(newRecord);
+  }
+
+  // CHECK-OUT (FORCES 7:40 PM)
+  async checkOut(username: string) {
+    const lastRecord = await this.attendanceRepo.findOne({
+      where: { username, endTime: IsNull() },
+      order: { id: 'DESC' },
+    });
+
+    if (!lastRecord) {
+      throw new BadRequestException('No active attendance found to check out.');
     }
 
-    // Default username
-    if (!data.username) {
-      data.username = 'unknown';
-    }
-
-    // -----------------------------------------
-    // 🚀 FORCE CHECKOUT TIME TO 7:40 PM
-    // -----------------------------------------
-    const start = data.startTime;
+    const start = lastRecord.startTime;
 
     const forcedEndTime = new Date(
       start.getFullYear(),
       start.getMonth(),
       start.getDate(),
-      19, // 7 PM
-      40, // 40 minutes
-      0, // seconds
-      0, // milliseconds
+      19,
+      47,
+      0,
+      0,
     );
 
-    data.endTime = forcedEndTime;
+    lastRecord.endTime = forcedEndTime;
 
-    // -----------------------------------------
-    // 🚀 Calculate worked duration
-    // -----------------------------------------
-    data.workedDuration = data.endTime.getTime() - data.startTime.getTime();
+    lastRecord.workedDuration =
+      forcedEndTime.getTime() - lastRecord.startTime.getTime();
 
-    const record = this.attendanceRepo.create(data);
-    return await this.attendanceRepo.save(record);
+    return await this.attendanceRepo.save(lastRecord);
   }
 
   async getAllAttendance() {
-    return this.attendanceRepo.find({
-      order: { id: 'DESC' },
-    });
+    return this.attendanceRepo.find({ order: { id: 'DESC' } });
   }
 }
