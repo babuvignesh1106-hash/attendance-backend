@@ -1,23 +1,18 @@
 import { Controller, Post, Body, Get } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
+import { Attendance } from './entities/attendance.entity';
 
 @Controller('attendance')
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
-  // CHECK-IN
-  @Post('check-in')
-  checkIn(@Body('username') username: string) {
-    return this.attendanceService.checkIn(username);
+  // ✅ POST endpoint to create attendance
+  @Post()
+  create(@Body() attendanceData: Partial<Attendance>) {
+    return this.attendanceService.createAttendance(attendanceData);
   }
 
-  // CHECK-OUT
-  @Post('check-out')
-  checkOut(@Body('username') username: string) {
-    return this.attendanceService.checkOut(username);
-  }
-
-  // GET ALL
+  // ✅ GET endpoint to fetch all attendance records
   @Get()
   getAll() {
     return this.attendanceService.getAllAttendance();

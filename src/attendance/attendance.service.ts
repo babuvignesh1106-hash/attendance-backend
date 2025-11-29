@@ -1,6 +1,6 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Attendance } from './entities/attendance.entity';
 
 @Injectable()
@@ -10,60 +10,30 @@ export class AttendanceService {
     private readonly attendanceRepo: Repository<Attendance>,
   ) {}
 
-  // CHECK-IN
-  async checkIn(username: string) {
-    const openRecord = await this.attendanceRepo.findOne({
-      where: { username, endTime: IsNull() },
-    });
+  async createAttendance(data: Partial<Attendance>) {
+    // Convert timestamps to Date
+    if (data.startTime) data.startTime = new Date(data.startTime);
+    if (data.endTime) data.endTime = new Date(data.endTime);
 
-    if (openRecord) {
-      throw new BadRequestException('You already have an active attendance.');
+    // Generate the next ID manually
+    const lastRecord = await this.attendanceRepo
+      .createQueryBuilder('attendance')
+      .select('MAX(attendance.id)', 'max')
+      .getRawOne();
+
+    const nextId = lastRecord?.max ? Number(lastRecord.max) + 1 : 1;
+    data.id = nextId;
+
+    // ✅ Ensure username is provided (for backward compatibility)
+    if (!data.username) {
+      data.username = 'unknown';
     }
 
-    const newRecord = this.attendanceRepo.create({
-      username,
-      startTime: new Date(),
-      breakCount: 0,
-      totalBreakDuration: 0,
-      workedDuration: 0,
-    });
-
-    return await this.attendanceRepo.save(newRecord);
-  }
-
-  // CHECK-OUT (FORCED TIME)
-  async checkOut(username: string) {
-    const lastRecord = await this.attendanceRepo.findOne({
-      where: { username, endTime: IsNull() },
-      order: { id: 'DESC' },
-    });
-
-    if (!lastRecord) {
-      throw new BadRequestException('No active attendance found to check out.');
-    }
-
-    const start = lastRecord.startTime;
-
-    // FORCED TO 7:47 PM
-    const forcedEndTime = new Date(
-      start.getFullYear(),
-      start.getMonth(),
-      start.getDate(),
-      19,
-      54,
-      0,
-      0,
-    );
-
-    lastRecord.endTime = forcedEndTime;
-
-    lastRecord.workedDuration =
-      forcedEndTime.getTime() - lastRecord.startTime.getTime();
-
-    return await this.attendanceRepo.save(lastRecord);
+    const record = this.attendanceRepo.create(data);
+    return this.attendanceRepo.save(record);
   }
 
   async getAllAttendance() {
-    return this.attendanceRepo.find({ order: { id: 'DESC' } });
+    return this.attendanceRepo.find();
   }
 }
