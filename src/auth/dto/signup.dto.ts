@@ -24,4 +24,8 @@ export class SignupDto {
   @IsString()
   @IsOptional()
   employeeId?: string;
+
+  @IsString()
+  @IsOptional()
+  dateOfJoining: string;
 }

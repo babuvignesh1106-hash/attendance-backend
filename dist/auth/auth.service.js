@@ -55,7 +55,7 @@ let AuthService = class AuthService {
         this.jwtService = jwtService;
     }
     async signup(signupDto) {
-        const { email, password, name, role, designation, employeeId } = signupDto;
+        const { email, password, name, role, designation, employeeId, dateOfJoining, } = signupDto;
         const existingUser = await this.userService.findByEmail(email);
         if (existingUser) {
             throw new common_1.UnauthorizedException('User already exists');
@@ -68,6 +68,7 @@ let AuthService = class AuthService {
             role,
             designation,
             employeeId,
+            dateOfJoining,
         });
         return { message: 'Signup successful', user };
     }
@@ -90,6 +91,7 @@ let AuthService = class AuthService {
                 role: user.role,
                 designation: user.designation,
                 employeeId: user.employeeId,
+                dateOfJoining: user.dateOfJoining,
             },
         };
     }

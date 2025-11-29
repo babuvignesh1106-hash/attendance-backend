@@ -23,4 +23,7 @@ export class User {
 
   @Column({ nullable: true })
   employeeId: string;
+
+  @Column({ nullable: true })
+  dateOfJoining: string;
 }

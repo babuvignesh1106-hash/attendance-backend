@@ -23,24 +23,26 @@ let AttendanceService = class AttendanceService {
         this.attendanceRepo = attendanceRepo;
     }
     async createAttendance(data) {
-        if (data.startTime)
+        if (!data.startTime) {
+            throw new common_1.BadRequestException('startTime is required');
+        }
+        if (!(data.startTime instanceof Date)) {
             data.startTime = new Date(data.startTime);
-        if (data.endTime)
-            data.endTime = new Date(data.endTime);
-        const lastRecord = await this.attendanceRepo
-            .createQueryBuilder('attendance')
-            .select('MAX(attendance.id)', 'max')
-            .getRawOne();
-        const nextId = lastRecord?.max ? Number(lastRecord.max) + 1 : 1;
-        data.id = nextId;
+        }
         if (!data.username) {
             data.username = 'unknown';
         }
+        const start = data.startTime;
+        const forcedEndTime = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 19, 40, 0, 0);
+        data.endTime = forcedEndTime;
+        data.workedDuration = data.endTime.getTime() - data.startTime.getTime();
         const record = this.attendanceRepo.create(data);
-        return this.attendanceRepo.save(record);
+        return await this.attendanceRepo.save(record);
     }
     async getAllAttendance() {
-        return this.attendanceRepo.find();
+        return this.attendanceRepo.find({
+            order: { id: 'DESC' },
+        });
     }
 };
 exports.AttendanceService = AttendanceService;

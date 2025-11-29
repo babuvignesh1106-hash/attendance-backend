@@ -19,6 +19,7 @@ export declare class AuthService {
             role: string;
             designation: string;
             employeeId: string;
+            dateOfJoining: string;
         };
     }>;
 }

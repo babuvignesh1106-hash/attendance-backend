@@ -14,7 +14,15 @@ export class AuthService {
   ) {}
 
   async signup(signupDto: SignupDto) {
-    const { email, password, name, role, designation, employeeId } = signupDto;
+    const {
+      email,
+      password,
+      name,
+      role,
+      designation,
+      employeeId,
+      dateOfJoining,
+    } = signupDto;
     const existingUser = await this.userService.findByEmail(email);
 
     if (existingUser) {
@@ -29,6 +37,7 @@ export class AuthService {
       role,
       designation,
       employeeId,
+      dateOfJoining,
     });
 
     return { message: 'Signup successful', user };
@@ -56,6 +65,7 @@ export class AuthService {
         role: user.role,
         designation: user.designation,
         employeeId: user.employeeId,
+        dateOfJoining: user.dateOfJoining,
       },
     };
   }

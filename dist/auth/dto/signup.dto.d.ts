@@ -5,4 +5,5 @@ export declare class SignupDto {
     role?: string;
     designation?: string;
     employeeId?: string;
+    dateOfJoining: string;
 }

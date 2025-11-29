@@ -19,6 +19,7 @@ let User = class User {
     role;
     designation;
     employeeId;
+    dateOfJoining;
 };
 exports.User = User;
 __decorate([
@@ -49,6 +50,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "employeeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "dateOfJoining", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)('user')
 ], User);

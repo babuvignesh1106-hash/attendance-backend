@@ -17,6 +17,7 @@ export declare class AuthController {
             role: string;
             designation: string;
             employeeId: string;
+            dateOfJoining: string;
         };
     }>;
 }

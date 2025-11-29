@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Attendance } from './entities/attendance.entity';
@@ -11,29 +11,52 @@ export class AttendanceService {
   ) {}
 
   async createAttendance(data: Partial<Attendance>) {
-    // Convert timestamps to Date
-    if (data.startTime) data.startTime = new Date(data.startTime);
-    if (data.endTime) data.endTime = new Date(data.endTime);
+    // -----------------------------------------
+    // 🚀 Ensure startTime exists
+    // -----------------------------------------
+    if (!data.startTime) {
+      throw new BadRequestException('startTime is required');
+    }
 
-    // Generate the next ID manually
-    const lastRecord = await this.attendanceRepo
-      .createQueryBuilder('attendance')
-      .select('MAX(attendance.id)', 'max')
-      .getRawOne();
+    // Convert startTime to Date
+    if (!(data.startTime instanceof Date)) {
+      data.startTime = new Date(data.startTime);
+    }
 
-    const nextId = lastRecord?.max ? Number(lastRecord.max) + 1 : 1;
-    data.id = nextId;
-
-    // ✅ Ensure username is provided (for backward compatibility)
+    // Default username
     if (!data.username) {
       data.username = 'unknown';
     }
 
+    // -----------------------------------------
+    // 🚀 FORCE CHECKOUT TIME TO 7:40 PM
+    // -----------------------------------------
+    const start = data.startTime;
+
+    const forcedEndTime = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate(),
+      19, // 7 PM
+      40, // 40 minutes
+      0, // seconds
+      0, // milliseconds
+    );
+
+    data.endTime = forcedEndTime;
+
+    // -----------------------------------------
+    // 🚀 Calculate worked duration
+    // -----------------------------------------
+    data.workedDuration = data.endTime.getTime() - data.startTime.getTime();
+
     const record = this.attendanceRepo.create(data);
-    return this.attendanceRepo.save(record);
+    return await this.attendanceRepo.save(record);
   }
 
   async getAllAttendance() {
-    return this.attendanceRepo.find();
+    return this.attendanceRepo.find({
+      order: { id: 'DESC' },
+    });
   }
 }
