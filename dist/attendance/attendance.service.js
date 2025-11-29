@@ -22,39 +22,25 @@ let AttendanceService = class AttendanceService {
     constructor(attendanceRepo) {
         this.attendanceRepo = attendanceRepo;
     }
-    async checkIn(username) {
-        const openRecord = await this.attendanceRepo.findOne({
-            where: { username, endTime: (0, typeorm_2.IsNull)() },
-        });
-        if (openRecord) {
-            throw new common_1.BadRequestException('You already have an active attendance.');
+    async createAttendance(data) {
+        if (data.startTime)
+            data.startTime = new Date(data.startTime);
+        if (data.endTime)
+            data.endTime = new Date(data.endTime);
+        const lastRecord = await this.attendanceRepo
+            .createQueryBuilder('attendance')
+            .select('MAX(attendance.id)', 'max')
+            .getRawOne();
+        const nextId = lastRecord?.max ? Number(lastRecord.max) + 1 : 1;
+        data.id = nextId;
+        if (!data.username) {
+            data.username = 'unknown';
         }
-        const newRecord = this.attendanceRepo.create({
-            username,
-            startTime: new Date(),
-            breakCount: 0,
-            totalBreakDuration: 0,
-            workedDuration: 0,
-        });
-        return await this.attendanceRepo.save(newRecord);
-    }
-    async checkOut(username) {
-        const lastRecord = await this.attendanceRepo.findOne({
-            where: { username, endTime: (0, typeorm_2.IsNull)() },
-            order: { id: 'DESC' },
-        });
-        if (!lastRecord) {
-            throw new common_1.BadRequestException('No active attendance found to check out.');
-        }
-        const start = lastRecord.startTime;
-        const forcedEndTime = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 19, 47, 0, 0);
-        lastRecord.endTime = forcedEndTime;
-        lastRecord.workedDuration =
-            forcedEndTime.getTime() - lastRecord.startTime.getTime();
-        return await this.attendanceRepo.save(lastRecord);
+        const record = this.attendanceRepo.create(data);
+        return this.attendanceRepo.save(record);
     }
     async getAllAttendance() {
-        return this.attendanceRepo.find({ order: { id: 'DESC' } });
+        return this.attendanceRepo.find();
     }
 };
 exports.AttendanceService = AttendanceService;

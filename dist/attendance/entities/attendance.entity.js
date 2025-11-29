@@ -34,15 +34,15 @@ __decorate([
     __metadata("design:type", Date)
 ], Attendance.prototype, "endTime", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'bigint', default: 0 }),
+    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], Attendance.prototype, "workedDuration", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: 0 }),
+    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], Attendance.prototype, "breakCount", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'bigint', default: 0 }),
+    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], Attendance.prototype, "totalBreakDuration", void 0);
 __decorate([
