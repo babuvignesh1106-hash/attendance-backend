@@ -22,27 +22,39 @@ let AttendanceService = class AttendanceService {
     constructor(attendanceRepo) {
         this.attendanceRepo = attendanceRepo;
     }
-    async createAttendance(data) {
-        if (!data.startTime) {
-            throw new common_1.BadRequestException('startTime is required');
+    async checkIn(username) {
+        const openRecord = await this.attendanceRepo.findOne({
+            where: { username, endTime: (0, typeorm_2.IsNull)() },
+        });
+        if (openRecord) {
+            throw new common_1.BadRequestException('You already have an active attendance.');
         }
-        if (!(data.startTime instanceof Date)) {
-            data.startTime = new Date(data.startTime);
-        }
-        if (!data.username) {
-            data.username = 'unknown';
-        }
-        const start = data.startTime;
-        const forcedEndTime = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 19, 40, 0, 0);
-        data.endTime = forcedEndTime;
-        data.workedDuration = data.endTime.getTime() - data.startTime.getTime();
-        const record = this.attendanceRepo.create(data);
-        return await this.attendanceRepo.save(record);
+        const newRecord = this.attendanceRepo.create({
+            username,
+            startTime: new Date(),
+            breakCount: 0,
+            totalBreakDuration: 0,
+            workedDuration: 0,
+        });
+        return await this.attendanceRepo.save(newRecord);
     }
-    async getAllAttendance() {
-        return this.attendanceRepo.find({
+    async checkOut(username) {
+        const lastRecord = await this.attendanceRepo.findOne({
+            where: { username, endTime: (0, typeorm_2.IsNull)() },
             order: { id: 'DESC' },
         });
+        if (!lastRecord) {
+            throw new common_1.BadRequestException('No active attendance found to check out.');
+        }
+        const start = lastRecord.startTime;
+        const forcedEndTime = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 19, 47, 0, 0);
+        lastRecord.endTime = forcedEndTime;
+        lastRecord.workedDuration =
+            forcedEndTime.getTime() - lastRecord.startTime.getTime();
+        return await this.attendanceRepo.save(lastRecord);
+    }
+    async getAllAttendance() {
+        return this.attendanceRepo.find({ order: { id: 'DESC' } });
     }
 };
 exports.AttendanceService = AttendanceService;

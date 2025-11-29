@@ -3,7 +3,7 @@ import { Entity, PrimaryColumn, Column } from 'typeorm';
 @Entity()
 export class Attendance {
   @PrimaryColumn()
-  id: number; // We will generate this manually
+  id: number; // Manual ID
 
   @Column()
   startTime: Date;
@@ -11,16 +11,16 @@ export class Attendance {
   @Column({ type: 'timestamp', nullable: true })
   endTime?: Date;
 
-  @Column()
+  // Worked duration (in ms)
+  @Column({ type: 'bigint', default: 0 })
   workedDuration: number;
 
-  @Column()
+  @Column({ default: 0 })
   breakCount: number;
 
-  @Column()
+  @Column({ type: 'bigint', default: 0 })
   totalBreakDuration: number;
 
-  // ✅ Added username column (nullable to prevent errors with existing data)
   @Column({ nullable: true })
   username: string;
 }

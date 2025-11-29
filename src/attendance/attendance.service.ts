@@ -31,7 +31,7 @@ export class AttendanceService {
     return await this.attendanceRepo.save(newRecord);
   }
 
-  // CHECK-OUT (FORCES 7:40 PM)
+  // CHECK-OUT (FORCED TIME)
   async checkOut(username: string) {
     const lastRecord = await this.attendanceRepo.findOne({
       where: { username, endTime: IsNull() },
@@ -44,12 +44,13 @@ export class AttendanceService {
 
     const start = lastRecord.startTime;
 
+    // FORCED TO 7:47 PM
     const forcedEndTime = new Date(
       start.getFullYear(),
       start.getMonth(),
       start.getDate(),
       19,
-      47,
+      54,
       0,
       0,
     );
