@@ -1,39 +1,147 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between, IsNull } from 'typeorm';
 import { Attendance } from './entities/attendance.entity';
 
 @Injectable()
 export class AttendanceService {
+  private readonly logger = new Logger(AttendanceService.name);
+
   constructor(
     @InjectRepository(Attendance)
-    private readonly attendanceRepo: Repository<Attendance>,
+    private readonly repo: Repository<Attendance>,
   ) {}
 
-  async createAttendance(data: Partial<Attendance>) {
-    // Convert timestamps to Date
-    if (data.startTime) data.startTime = new Date(data.startTime);
-    if (data.endTime) data.endTime = new Date(data.endTime);
-
-    // Generate the next ID manually
-    const lastRecord = await this.attendanceRepo
-      .createQueryBuilder('attendance')
-      .select('MAX(attendance.id)', 'max')
-      .getRawOne();
-
-    const nextId = lastRecord?.max ? Number(lastRecord.max) + 1 : 1;
-    data.id = nextId;
-
-    // ✅ Ensure username is provided (for backward compatibility)
-    if (!data.username) {
-      data.username = 'unknown';
-    }
-
-    const record = this.attendanceRepo.create(data);
-    return this.attendanceRepo.save(record);
+  private startOfDay(date = new Date()): Date {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
   }
 
-  async getAllAttendance() {
-    return this.attendanceRepo.find();
+  private endOfDay(date = new Date()): Date {
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }
+
+  /** Find today's attendance record for a user */
+  async findToday(username: string): Promise<Attendance | null> {
+    const start = this.startOfDay();
+    const end = this.endOfDay();
+    return this.repo.findOne({
+      where: { username, startTime: Between(start, end) },
+    });
+  }
+
+  /** Check-in */
+  async checkIn(username: string): Promise<Attendance> {
+    if (!username) throw new BadRequestException('Username is required');
+
+    const existing = await this.findToday(username);
+    if (existing) throw new BadRequestException('Already checked in today');
+
+    const record = this.repo.create({
+      username,
+      startTime: new Date(),
+      endTime: null,
+      workedDuration: 0,
+      breakCount: 0,
+      totalBreakDuration: 0,
+      currentBreakStart: null,
+    });
+
+    return this.repo.save(record);
+  }
+
+  /** Start break */
+  async startBreak(username: string): Promise<Attendance> {
+    const record = await this.findToday(username);
+    if (!record) throw new BadRequestException('No check-in found for today');
+    if (record.currentBreakStart)
+      throw new BadRequestException('Break already started');
+
+    record.currentBreakStart = new Date();
+    record.breakCount += 1;
+
+    return this.repo.save(record);
+  }
+
+  /** End break */
+  async endBreak(username: string): Promise<Attendance> {
+    const record = await this.findToday(username);
+    if (!record) throw new BadRequestException('No check-in found for today');
+    if (!record.currentBreakStart)
+      throw new BadRequestException('No active break to end');
+
+    const now = new Date();
+    const breakMs = now.getTime() - record.currentBreakStart.getTime();
+    record.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+    record.currentBreakStart = null;
+
+    return this.repo.save(record);
+  }
+
+  /** Check-out */
+  async checkOut(username: string): Promise<Attendance> {
+    const record = await this.findToday(username);
+    if (!record) throw new BadRequestException('No check-in found for today');
+    if (record.endTime) throw new BadRequestException('Already checked out');
+
+    const now = new Date();
+
+    // Auto-close break if open
+    if (record.currentBreakStart) {
+      const breakMs = now.getTime() - record.currentBreakStart.getTime();
+      record.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+      record.currentBreakStart = null;
+    }
+
+    const rawWorked = now.getTime() - record.startTime.getTime();
+    const worked = rawWorked - record.totalBreakDuration;
+
+    record.endTime = now;
+    record.workedDuration = worked > 0 ? worked : 0;
+
+    return this.repo.save(record);
+  }
+
+  /** Get all attendance records */
+  async getAll(): Promise<Attendance[]> {
+    return this.repo.find({ order: { startTime: 'DESC' } });
+  }
+
+  /** Auto-checkout open records from previous days */
+  async autoCheckoutUnclosed(): Promise<{ closed: number }> {
+    this.logger.log('Running auto-checkout cron');
+
+    const openRecords = await this.repo.find({ where: { endTime: IsNull() } });
+    const ops: Promise<Attendance>[] = [];
+
+    const todayStart = this.startOfDay();
+
+    for (const r of openRecords) {
+      const recordStartDay = this.startOfDay(r.startTime);
+
+      if (recordStartDay.getTime() < todayStart.getTime()) {
+        const end = this.endOfDay(r.startTime);
+
+        // Close any open break
+        if (r.currentBreakStart) {
+          const breakMs = end.getTime() - r.currentBreakStart.getTime();
+          r.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+          r.currentBreakStart = null;
+        }
+
+        const rawWorked = end.getTime() - r.startTime.getTime();
+        r.endTime = end;
+        r.workedDuration = rawWorked - r.totalBreakDuration;
+
+        ops.push(this.repo.save(r));
+      }
+    }
+
+    await Promise.all(ops);
+    this.logger.log(`Auto-checked-out ${ops.length} records`);
+    return { closed: ops.length };
   }
 }

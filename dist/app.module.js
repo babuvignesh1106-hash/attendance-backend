@@ -27,6 +27,7 @@ const payslip_module_1 = require("./payslip/payslip.module");
 const payslip_entity_1 = require("./payslip/payslip.entity");
 const staff_module_1 = require("./staff/staff.module");
 const staff_entity_1 = require("./staff/entities/staff.entity");
+const schedule_1 = require("@nestjs/schedule");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,6 +35,7 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule.forRoot({ isGlobal: true }),
+            schedule_1.ScheduleModule.forRoot(),
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],

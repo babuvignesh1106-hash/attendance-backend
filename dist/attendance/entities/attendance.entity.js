@@ -18,23 +18,24 @@ let Attendance = class Attendance {
     workedDuration;
     breakCount;
     totalBreakDuration;
+    currentBreakStart;
     username;
 };
 exports.Attendance = Attendance;
 __decorate([
-    (0, typeorm_1.PrimaryColumn)(),
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
 ], Attendance.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ type: 'timestamp' }),
     __metadata("design:type", Date)
 ], Attendance.prototype, "startTime", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], Attendance.prototype, "endTime", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
+    (0, typeorm_1.Column)({ type: 'bigint', default: 0 }),
     __metadata("design:type", Number)
 ], Attendance.prototype, "workedDuration", void 0);
 __decorate([
@@ -42,11 +43,15 @@ __decorate([
     __metadata("design:type", Number)
 ], Attendance.prototype, "breakCount", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
+    (0, typeorm_1.Column)({ type: 'bigint', default: 0 }),
     __metadata("design:type", Number)
 ], Attendance.prototype, "totalBreakDuration", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Object)
+], Attendance.prototype, "currentBreakStart", void 0);
+__decorate([
+    (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], Attendance.prototype, "username", void 0);
 exports.Attendance = Attendance = __decorate([

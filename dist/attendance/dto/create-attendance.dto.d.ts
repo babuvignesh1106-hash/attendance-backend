@@ -1,8 +1,9 @@
 export declare class CreateAttendanceDto {
-    isCheckedIn: boolean;
+    username: string;
+    isCheckedIn?: boolean;
+    isOnBreak?: boolean;
     startTime?: number;
-    elapsedTime: number;
-    isOnBreak: boolean;
-    breakCount: number;
-    breakElapsed: number;
+    elapsedTime?: number;
+    breakCount?: number;
+    breakElapsed?: number;
 }

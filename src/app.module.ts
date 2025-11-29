@@ -18,12 +18,14 @@ import { PayslipModule } from './payslip/payslip.module';
 import { Payslip } from './payslip/payslip.entity';
 import { StaffModule } from './staff/staff.module';
 import { Staff } from './staff/entities/staff.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), // loads .env globally
 
     // async config for TypeORM (reads env dynamically)
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

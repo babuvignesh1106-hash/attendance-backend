@@ -1,25 +1,28 @@
-import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class Attendance {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'timestamp' })
   startTime: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  endTime?: Date;
+  endTime: Date | null;
 
-  @Column({ type: 'int', default: 0 }) // ✅ default 0
+  @Column({ type: 'bigint', default: 0 })
   workedDuration: number;
 
   @Column({ type: 'int', default: 0 })
   breakCount: number;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ type: 'bigint', default: 0 })
   totalBreakDuration: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
+  currentBreakStart: Date | null;
+
+  @Column()
   username: string;
 }

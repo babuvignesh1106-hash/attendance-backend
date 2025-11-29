@@ -6,15 +6,33 @@ import { Attendance } from './entities/attendance.entity';
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
-  // ✅ POST endpoint to create attendance
-  @Post()
-  create(@Body() attendanceData: Partial<Attendance>) {
-    return this.attendanceService.createAttendance(attendanceData);
+  @Post('check-in')
+  checkIn(@Body('username') username: string): Promise<Attendance> {
+    return this.attendanceService.checkIn(username);
   }
 
-  // ✅ GET endpoint to fetch all attendance records
+  @Post('start-break')
+  startBreak(@Body('username') username: string): Promise<Attendance> {
+    return this.attendanceService.startBreak(username);
+  }
+
+  @Post('end-break')
+  endBreak(@Body('username') username: string): Promise<Attendance> {
+    return this.attendanceService.endBreak(username);
+  }
+
+  @Post('check-out')
+  checkOut(@Body('username') username: string): Promise<Attendance> {
+    return this.attendanceService.checkOut(username);
+  }
+
   @Get()
-  getAll() {
-    return this.attendanceService.getAllAttendance();
+  getAll(): Promise<Attendance[]> {
+    return this.attendanceService.getAll();
+  }
+
+  @Post('auto-checkout')
+  autoCheckout(): Promise<{ closed: number }> {
+    return this.attendanceService.autoCheckoutUnclosed();
   }
 }

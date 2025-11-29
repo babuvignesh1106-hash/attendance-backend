@@ -12,36 +12,46 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateAttendanceDto = void 0;
 const class_validator_1 = require("class-validator");
 class CreateAttendanceDto {
+    username;
     isCheckedIn;
+    isOnBreak;
     startTime;
     elapsedTime;
-    isOnBreak;
     breakCount;
     breakElapsed;
 }
 exports.CreateAttendanceDto = CreateAttendanceDto;
 __decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateAttendanceDto.prototype, "username", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateAttendanceDto.prototype, "isCheckedIn", void 0);
 __decorate([
-    (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Number)
-], CreateAttendanceDto.prototype, "startTime", void 0);
-__decorate([
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
-], CreateAttendanceDto.prototype, "elapsedTime", void 0);
-__decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateAttendanceDto.prototype, "isOnBreak", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateAttendanceDto.prototype, "startTime", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateAttendanceDto.prototype, "elapsedTime", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateAttendanceDto.prototype, "breakCount", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateAttendanceDto.prototype, "breakElapsed", void 0);

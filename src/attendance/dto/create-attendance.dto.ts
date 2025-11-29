@@ -1,23 +1,31 @@
 // src/attendance/dto/create-attendance.dto.ts
-import { IsBoolean, IsNumber, IsOptional } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateAttendanceDto {
-  @IsBoolean()
-  isCheckedIn: boolean;
+  @IsString()
+  username: string;
 
-  @IsNumber()
   @IsOptional()
-  startTime?: number;
-
-  @IsNumber()
-  elapsedTime: number;
-
   @IsBoolean()
-  isOnBreak: boolean;
+  isCheckedIn?: boolean;
 
-  @IsNumber()
-  breakCount: number;
+  @IsOptional()
+  @IsBoolean()
+  isOnBreak?: boolean;
 
+  @IsOptional()
   @IsNumber()
-  breakElapsed: number;
+  startTime?: number; // optional, server computes if not provided
+
+  @IsOptional()
+  @IsNumber()
+  elapsedTime?: number; // computed server-side
+
+  @IsOptional()
+  @IsNumber()
+  breakCount?: number; // server increments automatically
+
+  @IsOptional()
+  @IsNumber()
+  breakElapsed?: number; // server computes
 }

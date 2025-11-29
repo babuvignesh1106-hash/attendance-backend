@@ -20,27 +20,66 @@ let AttendanceController = class AttendanceController {
     constructor(attendanceService) {
         this.attendanceService = attendanceService;
     }
-    create(attendanceData) {
-        return this.attendanceService.createAttendance(attendanceData);
+    checkIn(username) {
+        return this.attendanceService.checkIn(username);
+    }
+    startBreak(username) {
+        return this.attendanceService.startBreak(username);
+    }
+    endBreak(username) {
+        return this.attendanceService.endBreak(username);
+    }
+    checkOut(username) {
+        return this.attendanceService.checkOut(username);
     }
     getAll() {
-        return this.attendanceService.getAllAttendance();
+        return this.attendanceService.getAll();
+    }
+    autoCheckout() {
+        return this.attendanceService.autoCheckoutUnclosed();
     }
 };
 exports.AttendanceController = AttendanceController;
 __decorate([
-    (0, common_1.Post)(),
-    __param(0, (0, common_1.Body)()),
+    (0, common_1.Post)('check-in'),
+    __param(0, (0, common_1.Body)('username')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], AttendanceController.prototype, "create", null);
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AttendanceController.prototype, "checkIn", null);
+__decorate([
+    (0, common_1.Post)('start-break'),
+    __param(0, (0, common_1.Body)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AttendanceController.prototype, "startBreak", null);
+__decorate([
+    (0, common_1.Post)('end-break'),
+    __param(0, (0, common_1.Body)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AttendanceController.prototype, "endBreak", null);
+__decorate([
+    (0, common_1.Post)('check-out'),
+    __param(0, (0, common_1.Body)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AttendanceController.prototype, "checkOut", null);
 __decorate([
     (0, common_1.Get)(),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], AttendanceController.prototype, "getAll", null);
+__decorate([
+    (0, common_1.Post)('auto-checkout'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AttendanceController.prototype, "autoCheckout", null);
 exports.AttendanceController = AttendanceController = __decorate([
     (0, common_1.Controller)('attendance'),
     __metadata("design:paramtypes", [attendance_service_1.AttendanceService])

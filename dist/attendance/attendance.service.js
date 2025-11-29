@@ -11,40 +11,123 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var AttendanceService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AttendanceService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const attendance_entity_1 = require("./entities/attendance.entity");
-let AttendanceService = class AttendanceService {
-    attendanceRepo;
-    constructor(attendanceRepo) {
-        this.attendanceRepo = attendanceRepo;
+let AttendanceService = AttendanceService_1 = class AttendanceService {
+    repo;
+    logger = new common_1.Logger(AttendanceService_1.name);
+    constructor(repo) {
+        this.repo = repo;
     }
-    async createAttendance(data) {
-        if (data.startTime)
-            data.startTime = new Date(data.startTime);
-        if (data.endTime)
-            data.endTime = new Date(data.endTime);
-        const lastRecord = await this.attendanceRepo
-            .createQueryBuilder('attendance')
-            .select('MAX(attendance.id)', 'max')
-            .getRawOne();
-        const nextId = lastRecord?.max ? Number(lastRecord.max) + 1 : 1;
-        data.id = nextId;
-        if (!data.username) {
-            data.username = 'unknown';
+    startOfDay(date = new Date()) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+    endOfDay(date = new Date()) {
+        const d = new Date(date);
+        d.setHours(23, 59, 59, 999);
+        return d;
+    }
+    async findToday(username) {
+        const start = this.startOfDay();
+        const end = this.endOfDay();
+        return this.repo.findOne({
+            where: { username, startTime: (0, typeorm_2.Between)(start, end) },
+        });
+    }
+    async checkIn(username) {
+        if (!username)
+            throw new common_1.BadRequestException('Username is required');
+        const existing = await this.findToday(username);
+        if (existing)
+            throw new common_1.BadRequestException('Already checked in today');
+        const record = this.repo.create({
+            username,
+            startTime: new Date(),
+            endTime: null,
+            workedDuration: 0,
+            breakCount: 0,
+            totalBreakDuration: 0,
+            currentBreakStart: null,
+        });
+        return this.repo.save(record);
+    }
+    async startBreak(username) {
+        const record = await this.findToday(username);
+        if (!record)
+            throw new common_1.BadRequestException('No check-in found for today');
+        if (record.currentBreakStart)
+            throw new common_1.BadRequestException('Break already started');
+        record.currentBreakStart = new Date();
+        record.breakCount += 1;
+        return this.repo.save(record);
+    }
+    async endBreak(username) {
+        const record = await this.findToday(username);
+        if (!record)
+            throw new common_1.BadRequestException('No check-in found for today');
+        if (!record.currentBreakStart)
+            throw new common_1.BadRequestException('No active break to end');
+        const now = new Date();
+        const breakMs = now.getTime() - record.currentBreakStart.getTime();
+        record.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+        record.currentBreakStart = null;
+        return this.repo.save(record);
+    }
+    async checkOut(username) {
+        const record = await this.findToday(username);
+        if (!record)
+            throw new common_1.BadRequestException('No check-in found for today');
+        if (record.endTime)
+            throw new common_1.BadRequestException('Already checked out');
+        const now = new Date();
+        if (record.currentBreakStart) {
+            const breakMs = now.getTime() - record.currentBreakStart.getTime();
+            record.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+            record.currentBreakStart = null;
         }
-        const record = this.attendanceRepo.create(data);
-        return this.attendanceRepo.save(record);
+        const rawWorked = now.getTime() - record.startTime.getTime();
+        const worked = rawWorked - record.totalBreakDuration;
+        record.endTime = now;
+        record.workedDuration = worked > 0 ? worked : 0;
+        return this.repo.save(record);
     }
-    async getAllAttendance() {
-        return this.attendanceRepo.find();
+    async getAll() {
+        return this.repo.find({ order: { startTime: 'DESC' } });
+    }
+    async autoCheckoutUnclosed() {
+        this.logger.log('Running auto-checkout cron');
+        const openRecords = await this.repo.find({ where: { endTime: (0, typeorm_2.IsNull)() } });
+        const ops = [];
+        const todayStart = this.startOfDay();
+        for (const r of openRecords) {
+            const recordStartDay = this.startOfDay(r.startTime);
+            if (recordStartDay.getTime() < todayStart.getTime()) {
+                const end = this.endOfDay(r.startTime);
+                if (r.currentBreakStart) {
+                    const breakMs = end.getTime() - r.currentBreakStart.getTime();
+                    r.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+                    r.currentBreakStart = null;
+                }
+                const rawWorked = end.getTime() - r.startTime.getTime();
+                r.endTime = end;
+                r.workedDuration = rawWorked - r.totalBreakDuration;
+                ops.push(this.repo.save(r));
+            }
+        }
+        await Promise.all(ops);
+        this.logger.log(`Auto-checked-out ${ops.length} records`);
+        return { closed: ops.length };
     }
 };
 exports.AttendanceService = AttendanceService;
-exports.AttendanceService = AttendanceService = __decorate([
+exports.AttendanceService = AttendanceService = AttendanceService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(attendance_entity_1.Attendance)),
     __metadata("design:paramtypes", [typeorm_2.Repository])
