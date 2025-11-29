@@ -66,7 +66,7 @@ export class AttendanceService {
     return this.repo.save(record);
   }
 
-  /** End break */
+  /** End break (duration in seconds) */
   async endBreak(username: string): Promise<Attendance> {
     const record = await this.findToday(username);
     if (!record) throw new BadRequestException('No check-in found for today');
@@ -74,8 +74,10 @@ export class AttendanceService {
       throw new BadRequestException('No active break to end');
 
     const now = new Date();
-    const breakMs = now.getTime() - record.currentBreakStart.getTime();
-    record.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+    const breakSeconds = Math.round(
+      (now.getTime() - record.currentBreakStart.getTime()) / 1000,
+    );
+    record.totalBreakDuration += breakSeconds;
     record.currentBreakStart = null;
 
     return this.repo.save(record);
@@ -91,16 +93,18 @@ export class AttendanceService {
 
     // Auto-close break if open
     if (record.currentBreakStart) {
-      const breakMs = now.getTime() - record.currentBreakStart.getTime();
-      record.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+      const breakSeconds = Math.round(
+        (now.getTime() - record.currentBreakStart.getTime()) / 1000,
+      );
+      record.totalBreakDuration += breakSeconds;
       record.currentBreakStart = null;
     }
 
-    const rawWorked = now.getTime() - record.startTime.getTime();
-    const worked = rawWorked - record.totalBreakDuration;
-
+    const rawWorkedSeconds = Math.round(
+      (now.getTime() - record.startTime.getTime()) / 1000,
+    );
     record.endTime = now;
-    record.workedDuration = worked > 0 ? worked : 0;
+    record.workedDuration = rawWorkedSeconds - record.totalBreakDuration;
 
     return this.repo.save(record);
   }
@@ -127,14 +131,18 @@ export class AttendanceService {
 
         // Close any open break
         if (r.currentBreakStart) {
-          const breakMs = end.getTime() - r.currentBreakStart.getTime();
-          r.totalBreakDuration += breakMs > 0 ? breakMs : 0;
+          const breakSeconds = Math.round(
+            (end.getTime() - r.currentBreakStart.getTime()) / 1000,
+          );
+          r.totalBreakDuration += breakSeconds;
           r.currentBreakStart = null;
         }
 
-        const rawWorked = end.getTime() - r.startTime.getTime();
+        const rawWorkedSeconds = Math.round(
+          (end.getTime() - r.startTime.getTime()) / 1000,
+        );
         r.endTime = end;
-        r.workedDuration = rawWorked - r.totalBreakDuration;
+        r.workedDuration = rawWorkedSeconds - r.totalBreakDuration;
 
         ops.push(this.repo.save(r));
       }
