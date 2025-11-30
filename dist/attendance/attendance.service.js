@@ -21,19 +21,47 @@ const attendance_entity_1 = require("./entities/attendance.entity");
 let AttendanceService = AttendanceService_1 = class AttendanceService {
     repo;
     logger = new common_1.Logger(AttendanceService_1.name);
+    IST_OFFSET = 5.5 * 60 * 60 * 1000;
     constructor(repo) {
         this.repo = repo;
     }
-    async findActiveSession(username) {
+    startOfDay(date = new Date()) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+    endOfDay(date = new Date()) {
+        const d = new Date(date);
+        d.setHours(23, 59, 59, 999);
+        return d;
+    }
+    toIST(date) {
+        return new Date(date.getTime() + this.IST_OFFSET);
+    }
+    convertToIST(att) {
+        return {
+            ...att,
+            startTime: this.toIST(att.startTime),
+            endTime: att.endTime ? this.toIST(att.endTime) : null,
+            currentBreakStart: att.currentBreakStart
+                ? this.toIST(att.currentBreakStart)
+                : null,
+        };
+    }
+    async findTodayRaw(username) {
+        const start = this.startOfDay();
+        const end = this.endOfDay();
         return this.repo.findOne({
-            where: { username, endTime: (0, typeorm_2.IsNull)() },
-            order: { startTime: 'DESC' },
+            where: { username, startTime: (0, typeorm_2.Between)(start, end) },
         });
     }
     async checkIn(username) {
         if (!username)
             throw new common_1.BadRequestException('Username is required');
-        const record = this.repo.create({
+        const existing = await this.findTodayRaw(username);
+        if (existing)
+            throw new common_1.BadRequestException('Already checked in today');
+        const record = await this.repo.save(this.repo.create({
             username,
             startTime: new Date(),
             endTime: null,
@@ -41,35 +69,37 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
             breakCount: 0,
             totalBreakDuration: 0,
             currentBreakStart: null,
-        });
-        return this.repo.save(record);
+        }));
+        return this.convertToIST(record);
     }
     async startBreak(username) {
-        const record = await this.findActiveSession(username);
+        const record = await this.findTodayRaw(username);
         if (!record)
-            throw new common_1.BadRequestException('No active check-in session');
+            throw new common_1.BadRequestException('No check-in found today');
         if (record.currentBreakStart)
             throw new common_1.BadRequestException('Break already started');
         record.currentBreakStart = new Date();
         record.breakCount += 1;
-        return this.repo.save(record);
+        return this.convertToIST(await this.repo.save(record));
     }
     async endBreak(username) {
-        const record = await this.findActiveSession(username);
+        const record = await this.findTodayRaw(username);
         if (!record)
-            throw new common_1.BadRequestException('No active check-in session');
+            throw new common_1.BadRequestException('No check-in found today');
         if (!record.currentBreakStart)
-            throw new common_1.BadRequestException('No active break to end');
+            throw new common_1.BadRequestException('No active break');
         const now = new Date();
         const breakSeconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
         record.totalBreakDuration += breakSeconds;
         record.currentBreakStart = null;
-        return this.repo.save(record);
+        return this.convertToIST(await this.repo.save(record));
     }
     async checkOut(username) {
-        const record = await this.findActiveSession(username);
+        const record = await this.findTodayRaw(username);
         if (!record)
-            throw new common_1.BadRequestException('No active check-in session');
+            throw new common_1.BadRequestException('Not checked in today');
+        if (record.endTime)
+            throw new common_1.BadRequestException('Already checked out');
         const now = new Date();
         if (record.currentBreakStart) {
             const breakSeconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
@@ -79,27 +109,21 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         const rawWorkedSeconds = Math.round((now.getTime() - record.startTime.getTime()) / 1000);
         record.endTime = now;
         record.workedDuration = rawWorkedSeconds - record.totalBreakDuration;
-        return this.repo.save(record);
+        return this.convertToIST(await this.repo.save(record));
     }
     async getAll() {
-        return this.repo.find({ order: { startTime: 'DESC' } });
+        const records = await this.repo.find({ order: { startTime: 'DESC' } });
+        return records.map((r) => this.convertToIST(r));
     }
     async autoCheckoutUnclosed() {
         this.logger.log('Running auto-checkout cron');
-        const openRecords = await this.repo.find({
-            where: { endTime: (0, typeorm_2.IsNull)() },
-        });
+        const openRecords = await this.repo.find({ where: { endTime: (0, typeorm_2.IsNull)() } });
         const ops = [];
+        const todayStart = this.startOfDay();
         for (const r of openRecords) {
-            const start = new Date(r.startTime);
-            const startDay = new Date(start);
-            startDay.setHours(0, 0, 0, 0);
-            const now = new Date();
-            const todayStart = new Date(now);
-            todayStart.setHours(0, 0, 0, 0);
-            if (startDay.getTime() < todayStart.getTime()) {
-                const end = new Date(start);
-                end.setHours(23, 59, 59, 999);
+            const recordStartDay = this.startOfDay(r.startTime);
+            if (recordStartDay.getTime() < todayStart.getTime()) {
+                const end = this.endOfDay(r.startTime);
                 if (r.currentBreakStart) {
                     const breakSeconds = Math.round((end.getTime() - r.currentBreakStart.getTime()) / 1000);
                     r.totalBreakDuration += breakSeconds;
