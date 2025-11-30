@@ -24,29 +24,15 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
     constructor(repo) {
         this.repo = repo;
     }
-    startOfDay(date = new Date()) {
-        const d = new Date(date);
-        d.setHours(0, 0, 0, 0);
-        return d;
-    }
-    endOfDay(date = new Date()) {
-        const d = new Date(date);
-        d.setHours(23, 59, 59, 999);
-        return d;
-    }
-    async findToday(username) {
-        const start = this.startOfDay();
-        const end = this.endOfDay();
+    async findActiveSession(username) {
         return this.repo.findOne({
-            where: { username, startTime: (0, typeorm_2.Between)(start, end) },
+            where: { username, endTime: (0, typeorm_2.IsNull)() },
+            order: { startTime: 'DESC' },
         });
     }
     async checkIn(username) {
         if (!username)
             throw new common_1.BadRequestException('Username is required');
-        const existing = await this.findToday(username);
-        if (existing)
-            throw new common_1.BadRequestException('Already checked in today');
         const record = this.repo.create({
             username,
             startTime: new Date(),
@@ -59,9 +45,9 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         return this.repo.save(record);
     }
     async startBreak(username) {
-        const record = await this.findToday(username);
+        const record = await this.findActiveSession(username);
         if (!record)
-            throw new common_1.BadRequestException('No check-in found for today');
+            throw new common_1.BadRequestException('No active check-in session');
         if (record.currentBreakStart)
             throw new common_1.BadRequestException('Break already started');
         record.currentBreakStart = new Date();
@@ -69,9 +55,9 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         return this.repo.save(record);
     }
     async endBreak(username) {
-        const record = await this.findToday(username);
+        const record = await this.findActiveSession(username);
         if (!record)
-            throw new common_1.BadRequestException('No check-in found for today');
+            throw new common_1.BadRequestException('No active check-in session');
         if (!record.currentBreakStart)
             throw new common_1.BadRequestException('No active break to end');
         const now = new Date();
@@ -81,11 +67,9 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         return this.repo.save(record);
     }
     async checkOut(username) {
-        const record = await this.findToday(username);
+        const record = await this.findActiveSession(username);
         if (!record)
-            throw new common_1.BadRequestException('No check-in found for today');
-        if (record.endTime)
-            throw new common_1.BadRequestException('Already checked out');
+            throw new common_1.BadRequestException('No active check-in session');
         const now = new Date();
         if (record.currentBreakStart) {
             const breakSeconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
@@ -102,13 +86,20 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
     }
     async autoCheckoutUnclosed() {
         this.logger.log('Running auto-checkout cron');
-        const openRecords = await this.repo.find({ where: { endTime: (0, typeorm_2.IsNull)() } });
+        const openRecords = await this.repo.find({
+            where: { endTime: (0, typeorm_2.IsNull)() },
+        });
         const ops = [];
-        const todayStart = this.startOfDay();
         for (const r of openRecords) {
-            const recordStartDay = this.startOfDay(r.startTime);
-            if (recordStartDay.getTime() < todayStart.getTime()) {
-                const end = this.endOfDay(r.startTime);
+            const start = new Date(r.startTime);
+            const startDay = new Date(start);
+            startDay.setHours(0, 0, 0, 0);
+            const now = new Date();
+            const todayStart = new Date(now);
+            todayStart.setHours(0, 0, 0, 0);
+            if (startDay.getTime() < todayStart.getTime()) {
+                const end = new Date(start);
+                end.setHours(23, 59, 59, 999);
                 if (r.currentBreakStart) {
                     const breakSeconds = Math.round((end.getTime() - r.currentBreakStart.getTime()) / 1000);
                     r.totalBreakDuration += breakSeconds;

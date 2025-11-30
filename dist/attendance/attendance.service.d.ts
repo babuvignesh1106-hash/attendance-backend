@@ -4,9 +4,7 @@ export declare class AttendanceService {
     private readonly repo;
     private readonly logger;
     constructor(repo: Repository<Attendance>);
-    private startOfDay;
-    private endOfDay;
-    findToday(username: string): Promise<Attendance | null>;
+    private findActiveSession;
     checkIn(username: string): Promise<Attendance>;
     startBreak(username: string): Promise<Attendance>;
     endBreak(username: string): Promise<Attendance>;
