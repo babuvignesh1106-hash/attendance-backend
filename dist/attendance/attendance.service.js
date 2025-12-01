@@ -22,18 +22,20 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
     repo;
     logger = new common_1.Logger(AttendanceService_1.name);
     IST_OFFSET = 5.5 * 60 * 60 * 1000;
+    DAY_MS = 24 * 60 * 60 * 1000;
     constructor(repo) {
         this.repo = repo;
     }
-    startOfDay(date = new Date()) {
-        const d = new Date(date);
-        d.setHours(0, 0, 0, 0);
-        return d;
+    istDayStartToUTC(date = new Date()) {
+        const istMs = date.getTime() + this.IST_OFFSET;
+        const istDate = new Date(istMs);
+        istDate.setHours(0, 0, 0, 0);
+        const utcMs = istDate.getTime() - this.IST_OFFSET;
+        return new Date(utcMs);
     }
-    endOfDay(date = new Date()) {
-        const d = new Date(date);
-        d.setHours(23, 59, 59, 999);
-        return d;
+    istDayEndToUTC(date = new Date()) {
+        const startUtc = this.istDayStartToUTC(date);
+        return new Date(startUtc.getTime() + this.DAY_MS - 1);
     }
     toIST(date) {
         return new Date(date.getTime() + this.IST_OFFSET);
@@ -48,19 +50,27 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
                 : null,
         };
     }
-    async findTodayRaw(username) {
-        const start = this.startOfDay();
-        const end = this.endOfDay();
+    async findOpenRecord(username) {
         return this.repo.findOne({
+            where: { username, endTime: (0, typeorm_2.IsNull)() },
+            order: { startTime: 'DESC' },
+        });
+    }
+    async findTodayRaw(username) {
+        const start = this.istDayStartToUTC();
+        const end = this.istDayEndToUTC();
+        return this.repo.find({
             where: { username, startTime: (0, typeorm_2.Between)(start, end) },
+            order: { startTime: 'ASC' },
         });
     }
     async checkIn(username) {
         if (!username)
             throw new common_1.BadRequestException('Username is required');
-        const existing = await this.findTodayRaw(username);
-        if (existing)
-            throw new common_1.BadRequestException('Already checked in today');
+        const open = await this.findOpenRecord(username);
+        if (open) {
+            throw new common_1.BadRequestException('You must check out before checking in again');
+        }
         const record = await this.repo.save(this.repo.create({
             username,
             startTime: new Date(),
@@ -73,42 +83,43 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         return this.convertToIST(record);
     }
     async startBreak(username) {
-        const record = await this.findTodayRaw(username);
+        const record = await this.findOpenRecord(username);
         if (!record)
-            throw new common_1.BadRequestException('No check-in found today');
+            throw new common_1.BadRequestException('No active session found');
         if (record.currentBreakStart)
-            throw new common_1.BadRequestException('Break already started');
+            throw new common_1.BadRequestException('Break already running');
         record.currentBreakStart = new Date();
         record.breakCount += 1;
         return this.convertToIST(await this.repo.save(record));
     }
     async endBreak(username) {
-        const record = await this.findTodayRaw(username);
+        const record = await this.findOpenRecord(username);
         if (!record)
-            throw new common_1.BadRequestException('No check-in found today');
+            throw new common_1.BadRequestException('No active session found');
         if (!record.currentBreakStart)
             throw new common_1.BadRequestException('No active break');
         const now = new Date();
         const breakSeconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
-        record.totalBreakDuration += breakSeconds;
+        record.totalBreakDuration += breakSeconds > 0 ? breakSeconds : 0;
         record.currentBreakStart = null;
         return this.convertToIST(await this.repo.save(record));
     }
     async checkOut(username) {
-        const record = await this.findTodayRaw(username);
+        const record = await this.findOpenRecord(username);
         if (!record)
-            throw new common_1.BadRequestException('Not checked in today');
-        if (record.endTime)
-            throw new common_1.BadRequestException('Already checked out');
+            throw new common_1.BadRequestException('No active session found');
         const now = new Date();
         if (record.currentBreakStart) {
             const breakSeconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
-            record.totalBreakDuration += breakSeconds;
+            record.totalBreakDuration += breakSeconds > 0 ? breakSeconds : 0;
             record.currentBreakStart = null;
         }
-        const rawWorkedSeconds = Math.round((now.getTime() - record.startTime.getTime()) / 1000);
+        const rawWorked = Math.round((now.getTime() - record.startTime.getTime()) / 1000);
         record.endTime = now;
-        record.workedDuration = rawWorkedSeconds - record.totalBreakDuration;
+        record.workedDuration =
+            rawWorked - record.totalBreakDuration > 0
+                ? rawWorked - record.totalBreakDuration
+                : 0;
         return this.convertToIST(await this.repo.save(record));
     }
     async getAll() {
@@ -116,28 +127,36 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         return records.map((r) => this.convertToIST(r));
     }
     async autoCheckoutUnclosed() {
-        this.logger.log('Running auto-checkout cron');
-        const openRecords = await this.repo.find({ where: { endTime: (0, typeorm_2.IsNull)() } });
-        const ops = [];
-        const todayStart = this.startOfDay();
-        for (const r of openRecords) {
-            const recordStartDay = this.startOfDay(r.startTime);
-            if (recordStartDay.getTime() < todayStart.getTime()) {
-                const end = this.endOfDay(r.startTime);
+        this.logger.log('Running auto-checkout...');
+        const openSessions = await this.repo.find({
+            where: { endTime: (0, typeorm_2.IsNull)() },
+        });
+        const todayStartUtc = this.istDayStartToUTC();
+        let count = 0;
+        for (const r of openSessions) {
+            const recordIstStartDayMs = Math.floor((r.startTime.getTime() + this.IST_OFFSET) / this.DAY_MS) *
+                this.DAY_MS -
+                this.IST_OFFSET;
+            const recordStartUtc = new Date(recordIstStartDayMs);
+            if (recordStartUtc.getTime() < todayStartUtc.getTime()) {
+                const endUtc = new Date(recordStartUtc.getTime() + this.DAY_MS - 1);
                 if (r.currentBreakStart) {
-                    const breakSeconds = Math.round((end.getTime() - r.currentBreakStart.getTime()) / 1000);
-                    r.totalBreakDuration += breakSeconds;
+                    const breakSeconds = Math.round((endUtc.getTime() - r.currentBreakStart.getTime()) / 1000);
+                    r.totalBreakDuration += breakSeconds > 0 ? breakSeconds : 0;
                     r.currentBreakStart = null;
                 }
-                const rawWorkedSeconds = Math.round((end.getTime() - r.startTime.getTime()) / 1000);
-                r.endTime = end;
-                r.workedDuration = rawWorkedSeconds - r.totalBreakDuration;
-                ops.push(this.repo.save(r));
+                const rawWorked = Math.round((endUtc.getTime() - r.startTime.getTime()) / 1000);
+                r.endTime = endUtc;
+                r.workedDuration =
+                    rawWorked - r.totalBreakDuration > 0
+                        ? rawWorked - r.totalBreakDuration
+                        : 0;
+                await this.repo.save(r);
+                count++;
             }
         }
-        await Promise.all(ops);
-        this.logger.log(`Auto-checked-out ${ops.length} records`);
-        return { closed: ops.length };
+        this.logger.log(`Auto-checked-out ${count} sessions`);
+        return { closed: count };
     }
 };
 exports.AttendanceService = AttendanceService;

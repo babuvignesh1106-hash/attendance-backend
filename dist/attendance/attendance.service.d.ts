@@ -4,11 +4,13 @@ export declare class AttendanceService {
     private readonly repo;
     private readonly logger;
     private readonly IST_OFFSET;
+    private readonly DAY_MS;
     constructor(repo: Repository<Attendance>);
-    private startOfDay;
-    private endOfDay;
+    private istDayStartToUTC;
+    private istDayEndToUTC;
     private toIST;
     private convertToIST;
+    private findOpenRecord;
     private findTodayRaw;
     checkIn(username: string): Promise<Attendance>;
     startBreak(username: string): Promise<Attendance>;
