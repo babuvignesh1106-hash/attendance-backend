@@ -1,13 +1,12 @@
 import { AttendanceService } from './attendance.service';
-import { Attendance } from './entities/attendance.entity';
 export declare class AttendanceController {
     private readonly attendanceService;
     constructor(attendanceService: AttendanceService);
-    checkIn(username: string): Promise<Attendance>;
-    startBreak(username: string): Promise<Attendance>;
-    endBreak(username: string): Promise<Attendance>;
-    checkOut(username: string): Promise<Attendance>;
-    getAll(): Promise<Attendance[]>;
+    checkIn(username: string): Promise<any>;
+    startBreak(username: string): Promise<any>;
+    endBreak(username: string): Promise<any>;
+    checkOut(username: string): Promise<any>;
+    getAll(): Promise<any[]>;
     autoCheckout(): Promise<{
         closed: number;
     }>;

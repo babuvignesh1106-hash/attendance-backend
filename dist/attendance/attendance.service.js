@@ -26,51 +26,43 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
     constructor(repo) {
         this.repo = repo;
     }
+    toISTString(date) {
+        if (!date)
+            return null;
+        return new Date(date.getTime() + this.IST_OFFSET)
+            .toISOString()
+            .replace('Z', '');
+    }
+    wrap(att) {
+        return {
+            ...att,
+            startTime: this.toISTString(att.startTime),
+            endTime: this.toISTString(att.endTime),
+            currentBreakStart: this.toISTString(att.currentBreakStart),
+        };
+    }
     istDayStartToUTC(date = new Date()) {
         const istMs = date.getTime() + this.IST_OFFSET;
         const istDate = new Date(istMs);
         istDate.setHours(0, 0, 0, 0);
-        const utcMs = istDate.getTime() - this.IST_OFFSET;
-        return new Date(utcMs);
+        return new Date(istDate.getTime() - this.IST_OFFSET);
     }
     istDayEndToUTC(date = new Date()) {
-        const startUtc = this.istDayStartToUTC(date);
-        return new Date(startUtc.getTime() + this.DAY_MS - 1);
+        const start = this.istDayStartToUTC(date);
+        return new Date(start.getTime() + this.DAY_MS - 1);
     }
-    toIST(date) {
-        return new Date(date.getTime() + this.IST_OFFSET);
-    }
-    convertToIST(att) {
-        return {
-            ...att,
-            startTime: this.toIST(att.startTime),
-            endTime: att.endTime ? this.toIST(att.endTime) : null,
-            currentBreakStart: att.currentBreakStart
-                ? this.toIST(att.currentBreakStart)
-                : null,
-        };
-    }
-    async findOpenRecord(username) {
+    findOpenRecord(username) {
         return this.repo.findOne({
             where: { username, endTime: (0, typeorm_2.IsNull)() },
             order: { startTime: 'DESC' },
-        });
-    }
-    async findTodayRaw(username) {
-        const start = this.istDayStartToUTC();
-        const end = this.istDayEndToUTC();
-        return this.repo.find({
-            where: { username, startTime: (0, typeorm_2.Between)(start, end) },
-            order: { startTime: 'ASC' },
         });
     }
     async checkIn(username) {
         if (!username)
             throw new common_1.BadRequestException('Username is required');
         const open = await this.findOpenRecord(username);
-        if (open) {
-            throw new common_1.BadRequestException('You must check out before checking in again');
-        }
+        if (open)
+            throw new common_1.BadRequestException('Already checked in');
         const record = await this.repo.save(this.repo.create({
             username,
             startTime: new Date(),
@@ -80,83 +72,76 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
             totalBreakDuration: 0,
             currentBreakStart: null,
         }));
-        return this.convertToIST(record);
+        return this.wrap(record);
     }
     async startBreak(username) {
         const record = await this.findOpenRecord(username);
         if (!record)
-            throw new common_1.BadRequestException('No active session found');
+            throw new common_1.BadRequestException('No active session');
         if (record.currentBreakStart)
             throw new common_1.BadRequestException('Break already running');
         record.currentBreakStart = new Date();
         record.breakCount += 1;
-        return this.convertToIST(await this.repo.save(record));
+        return this.wrap(await this.repo.save(record));
     }
     async endBreak(username) {
         const record = await this.findOpenRecord(username);
         if (!record)
-            throw new common_1.BadRequestException('No active session found');
+            throw new common_1.BadRequestException('No active session');
         if (!record.currentBreakStart)
-            throw new common_1.BadRequestException('No active break');
+            throw new common_1.BadRequestException('No break active');
         const now = new Date();
-        const breakSeconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
-        record.totalBreakDuration += breakSeconds > 0 ? breakSeconds : 0;
+        const seconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
+        record.totalBreakDuration += Math.max(seconds, 0);
         record.currentBreakStart = null;
-        return this.convertToIST(await this.repo.save(record));
+        return this.wrap(await this.repo.save(record));
     }
     async checkOut(username) {
         const record = await this.findOpenRecord(username);
         if (!record)
-            throw new common_1.BadRequestException('No active session found');
+            throw new common_1.BadRequestException('No active session');
         const now = new Date();
         if (record.currentBreakStart) {
-            const breakSeconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
-            record.totalBreakDuration += breakSeconds > 0 ? breakSeconds : 0;
+            const seconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
+            record.totalBreakDuration += Math.max(seconds, 0);
             record.currentBreakStart = null;
         }
-        const rawWorked = Math.round((now.getTime() - record.startTime.getTime()) / 1000);
+        const workedSeconds = Math.round((now.getTime() - record.startTime.getTime()) / 1000);
         record.endTime = now;
-        record.workedDuration =
-            rawWorked - record.totalBreakDuration > 0
-                ? rawWorked - record.totalBreakDuration
-                : 0;
-        return this.convertToIST(await this.repo.save(record));
+        record.workedDuration = Math.max(workedSeconds - record.totalBreakDuration, 0);
+        return this.wrap(await this.repo.save(record));
     }
     async getAll() {
         const records = await this.repo.find({ order: { startTime: 'DESC' } });
-        return records.map((r) => this.convertToIST(r));
+        return records.map((r) => this.wrap(r));
     }
     async autoCheckoutUnclosed() {
-        this.logger.log('Running auto-checkout...');
+        this.logger.log('Running auto checkout...');
         const openSessions = await this.repo.find({
             where: { endTime: (0, typeorm_2.IsNull)() },
         });
         const todayStartUtc = this.istDayStartToUTC();
-        let count = 0;
+        let closed = 0;
         for (const r of openSessions) {
-            const recordIstStartDayMs = Math.floor((r.startTime.getTime() + this.IST_OFFSET) / this.DAY_MS) *
+            const sessionDay = Math.floor((r.startTime.getTime() + this.IST_OFFSET) / this.DAY_MS) *
                 this.DAY_MS -
                 this.IST_OFFSET;
-            const recordStartUtc = new Date(recordIstStartDayMs);
-            if (recordStartUtc.getTime() < todayStartUtc.getTime()) {
-                const endUtc = new Date(recordStartUtc.getTime() + this.DAY_MS - 1);
+            const sessionStartUTC = new Date(sessionDay);
+            if (sessionStartUTC.getTime() < todayStartUtc.getTime()) {
+                const endUTC = new Date(sessionStartUTC.getTime() + this.DAY_MS - 1);
                 if (r.currentBreakStart) {
-                    const breakSeconds = Math.round((endUtc.getTime() - r.currentBreakStart.getTime()) / 1000);
-                    r.totalBreakDuration += breakSeconds > 0 ? breakSeconds : 0;
+                    const seconds = Math.round((endUTC.getTime() - r.currentBreakStart.getTime()) / 1000);
+                    r.totalBreakDuration += Math.max(seconds, 0);
                     r.currentBreakStart = null;
                 }
-                const rawWorked = Math.round((endUtc.getTime() - r.startTime.getTime()) / 1000);
-                r.endTime = endUtc;
-                r.workedDuration =
-                    rawWorked - r.totalBreakDuration > 0
-                        ? rawWorked - r.totalBreakDuration
-                        : 0;
+                const worked = Math.round((endUTC.getTime() - r.startTime.getTime()) / 1000);
+                r.endTime = endUTC;
+                r.workedDuration = Math.max(worked - r.totalBreakDuration, 0);
                 await this.repo.save(r);
-                count++;
+                closed++;
             }
         }
-        this.logger.log(`Auto-checked-out ${count} sessions`);
-        return { closed: count };
+        return { closed };
     }
 };
 exports.AttendanceService = AttendanceService;

@@ -12,13 +12,13 @@ export class Attendance {
   endTime: Date | null;
 
   @Column({ type: 'int', default: 0 })
-  workedDuration: number; // in seconds
+  workedDuration: number;
 
   @Column({ type: 'int', default: 0 })
   breakCount: number;
 
   @Column({ type: 'int', default: 0 })
-  totalBreakDuration: number; // in seconds
+  totalBreakDuration: number;
 
   @Column({ type: 'timestamp', nullable: true })
   currentBreakStart: Date | null;
