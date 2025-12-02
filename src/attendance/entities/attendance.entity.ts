@@ -2,10 +2,13 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class Attendance {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn() // ✅ automatically increments
   id: number;
 
-  @Column({ type: 'timestamp' })
+  @Column()
+  username: string;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   startTime: Date;
 
   @Column({ type: 'timestamp', nullable: true })
@@ -22,7 +25,4 @@ export class Attendance {
 
   @Column({ type: 'timestamp', nullable: true })
   currentBreakStart: Date | null;
-
-  @Column()
-  username: string;
 }

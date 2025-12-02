@@ -13,13 +13,13 @@ exports.Attendance = void 0;
 const typeorm_1 = require("typeorm");
 let Attendance = class Attendance {
     id;
+    username;
     startTime;
     endTime;
     workedDuration;
     breakCount;
     totalBreakDuration;
     currentBreakStart;
-    username;
 };
 exports.Attendance = Attendance;
 __decorate([
@@ -27,7 +27,11 @@ __decorate([
     __metadata("design:type", Number)
 ], Attendance.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp' }),
+    (0, typeorm_1.Column)(),
+    __metadata("design:type", String)
+], Attendance.prototype, "username", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' }),
     __metadata("design:type", Date)
 ], Attendance.prototype, "startTime", void 0);
 __decorate([
@@ -50,10 +54,6 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Object)
 ], Attendance.prototype, "currentBreakStart", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], Attendance.prototype, "username", void 0);
 exports.Attendance = Attendance = __decorate([
     (0, typeorm_1.Entity)()
 ], Attendance);

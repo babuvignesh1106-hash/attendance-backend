@@ -16,50 +16,50 @@ export declare class AttendanceService {
         endTime: string | null;
         currentBreakStart: string | null;
         id: number;
+        username: string;
         workedDuration: number;
         breakCount: number;
         totalBreakDuration: number;
-        username: string;
     }>;
     startBreak(username: string): Promise<{
         startTime: string | null;
         endTime: string | null;
         currentBreakStart: string | null;
         id: number;
+        username: string;
         workedDuration: number;
         breakCount: number;
         totalBreakDuration: number;
-        username: string;
     }>;
     endBreak(username: string): Promise<{
         startTime: string | null;
         endTime: string | null;
         currentBreakStart: string | null;
         id: number;
+        username: string;
         workedDuration: number;
         breakCount: number;
         totalBreakDuration: number;
-        username: string;
     }>;
     checkOut(username: string): Promise<{
         startTime: string | null;
         endTime: string | null;
         currentBreakStart: string | null;
         id: number;
+        username: string;
         workedDuration: number;
         breakCount: number;
         totalBreakDuration: number;
-        username: string;
     }>;
     getAll(): Promise<{
         startTime: string | null;
         endTime: string | null;
         currentBreakStart: string | null;
         id: number;
+        username: string;
         workedDuration: number;
         breakCount: number;
         totalBreakDuration: number;
-        username: string;
     }[]>;
     autoCheckoutUnclosed(): Promise<{
         closed: number;
