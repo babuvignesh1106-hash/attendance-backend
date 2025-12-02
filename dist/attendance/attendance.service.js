@@ -21,35 +21,23 @@ const attendance_entity_1 = require("./entities/attendance.entity");
 let AttendanceService = AttendanceService_1 = class AttendanceService {
     repo;
     logger = new common_1.Logger(AttendanceService_1.name);
-    IST_OFFSET = 5.5 * 60 * 60 * 1000;
     DAY_MS = 24 * 60 * 60 * 1000;
     constructor(repo) {
         this.repo = repo;
     }
-    toISTString(date) {
-        if (!date)
-            return null;
-        return new Date(date.getTime() + this.IST_OFFSET)
-            .toISOString()
-            .replace('Z', '');
-    }
-    wrap(att) {
+    entityToPayload(att) {
         return {
-            ...att,
-            startTime: this.toISTString(att.startTime),
-            endTime: this.toISTString(att.endTime),
-            currentBreakStart: this.toISTString(att.currentBreakStart),
+            id: att.id,
+            username: att.username,
+            startTime: att.startTime ? att.startTime.toISOString() : null,
+            endTime: att.endTime ? att.endTime.toISOString() : null,
+            workedDuration: att.workedDuration,
+            breakCount: att.breakCount,
+            totalBreakDuration: att.totalBreakDuration,
+            currentBreakStart: att.currentBreakStart
+                ? att.currentBreakStart.toISOString()
+                : null,
         };
-    }
-    istDayStartToUTC(date = new Date()) {
-        const istMs = date.getTime() + this.IST_OFFSET;
-        const istDate = new Date(istMs);
-        istDate.setHours(0, 0, 0, 0);
-        return new Date(istDate.getTime() - this.IST_OFFSET);
-    }
-    istDayEndToUTC(date = new Date()) {
-        const start = this.istDayStartToUTC(date);
-        return new Date(start.getTime() + this.DAY_MS - 1);
     }
     findOpenRecord(username) {
         return this.repo.findOne({
@@ -63,7 +51,7 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         const open = await this.findOpenRecord(username);
         if (open)
             throw new common_1.BadRequestException('Already checked in');
-        const record = await this.repo.save(this.repo.create({
+        const record = this.repo.create({
             username,
             startTime: new Date(),
             endTime: null,
@@ -71,8 +59,9 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
             breakCount: 0,
             totalBreakDuration: 0,
             currentBreakStart: null,
-        }));
-        return this.wrap(record);
+        });
+        const saved = await this.repo.save(record);
+        return this.entityToPayload(saved);
     }
     async startBreak(username) {
         const record = await this.findOpenRecord(username);
@@ -81,8 +70,9 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         if (record.currentBreakStart)
             throw new common_1.BadRequestException('Break already running');
         record.currentBreakStart = new Date();
-        record.breakCount += 1;
-        return this.wrap(await this.repo.save(record));
+        record.breakCount = (record.breakCount || 0) + 1;
+        const saved = await this.repo.save(record);
+        return this.entityToPayload(saved);
     }
     async endBreak(username) {
         const record = await this.findOpenRecord(username);
@@ -92,9 +82,11 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
             throw new common_1.BadRequestException('No break active');
         const now = new Date();
         const seconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
-        record.totalBreakDuration += Math.max(seconds, 0);
+        record.totalBreakDuration =
+            (record.totalBreakDuration || 0) + Math.max(seconds, 0);
         record.currentBreakStart = null;
-        return this.wrap(await this.repo.save(record));
+        const saved = await this.repo.save(record);
+        return this.entityToPayload(saved);
     }
     async checkOut(username) {
         const record = await this.findOpenRecord(username);
@@ -103,40 +95,42 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         const now = new Date();
         if (record.currentBreakStart) {
             const seconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
-            record.totalBreakDuration += Math.max(seconds, 0);
+            record.totalBreakDuration =
+                (record.totalBreakDuration || 0) + Math.max(seconds, 0);
             record.currentBreakStart = null;
         }
         const workedSeconds = Math.round((now.getTime() - record.startTime.getTime()) / 1000);
         record.endTime = now;
-        record.workedDuration = Math.max(workedSeconds - record.totalBreakDuration, 0);
-        return this.wrap(await this.repo.save(record));
+        record.workedDuration = Math.max(workedSeconds - (record.totalBreakDuration || 0), 0);
+        const saved = await this.repo.save(record);
+        return this.entityToPayload(saved);
     }
     async getAll() {
         const records = await this.repo.find({ order: { startTime: 'DESC' } });
-        return records.map((r) => this.wrap(r));
+        return records.map((r) => this.entityToPayload(r));
     }
     async autoCheckoutUnclosed() {
         this.logger.log('Running auto checkout...');
-        const openSessions = await this.repo.find({
-            where: { endTime: (0, typeorm_2.IsNull)() },
-        });
-        const todayStartUtc = this.istDayStartToUTC();
+        const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+        const nowUtc = new Date();
+        const nowIstMs = nowUtc.getTime() + IST_OFFSET_MS;
+        const istMidnightMs = new Date(nowIstMs).setHours(0, 0, 0, 0);
+        const istMidnightUtcMs = istMidnightMs - IST_OFFSET_MS;
+        const todayStartUtc = new Date(istMidnightUtcMs);
+        const openSessions = await this.repo.find({ where: { endTime: (0, typeorm_2.IsNull)() } });
         let closed = 0;
         for (const r of openSessions) {
-            const sessionDay = Math.floor((r.startTime.getTime() + this.IST_OFFSET) / this.DAY_MS) *
-                this.DAY_MS -
-                this.IST_OFFSET;
-            const sessionStartUTC = new Date(sessionDay);
-            if (sessionStartUTC.getTime() < todayStartUtc.getTime()) {
-                const endUTC = new Date(sessionStartUTC.getTime() + this.DAY_MS - 1);
+            if (r.startTime.getTime() < todayStartUtc.getTime()) {
+                const endUtc = new Date(todayStartUtc.getTime() + this.DAY_MS - 1);
                 if (r.currentBreakStart) {
-                    const seconds = Math.round((endUTC.getTime() - r.currentBreakStart.getTime()) / 1000);
-                    r.totalBreakDuration += Math.max(seconds, 0);
+                    const seconds = Math.round((endUtc.getTime() - r.currentBreakStart.getTime()) / 1000);
+                    r.totalBreakDuration =
+                        (r.totalBreakDuration || 0) + Math.max(seconds, 0);
                     r.currentBreakStart = null;
                 }
-                const worked = Math.round((endUTC.getTime() - r.startTime.getTime()) / 1000);
-                r.endTime = endUTC;
-                r.workedDuration = Math.max(worked - r.totalBreakDuration, 0);
+                const workedSeconds = Math.round((endUtc.getTime() - r.startTime.getTime()) / 1000);
+                r.endTime = endUtc;
+                r.workedDuration = Math.max(workedSeconds - (r.totalBreakDuration || 0), 0);
                 await this.repo.save(r);
                 closed++;
             }

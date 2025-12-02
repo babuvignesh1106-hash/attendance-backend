@@ -1,15 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import express, { Request, Response } from 'express';
+
+const server = express();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
 
   app.enableCors({
     origin: [
-      'https://attendance-nine-beryl.vercel.app', // ✅ correct domain
-      'http://localhost:3000', // for local dev
-      'http://localhost:5173', // if using Vite for React
+      'https://attendance-nine-beryl.vercel.app',
+      'http://localhost:3000',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -18,8 +21,12 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
 
-  const port = process.env.PORT || 8000;
-  await app.listen(port, '0.0.0.0');
-  console.log(`🚀 Server running on port ${port}`);
+  await app.init();
 }
+
 bootstrap();
+
+// Vercel serverless function
+export default (req: Request, res: Response) => {
+  server(req, res);
+};

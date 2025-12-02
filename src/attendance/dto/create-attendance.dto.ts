@@ -1,4 +1,3 @@
-// src/attendance/dto/create-attendance.dto.ts
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateAttendanceDto {
@@ -13,19 +12,20 @@ export class CreateAttendanceDto {
   @IsBoolean()
   isOnBreak?: boolean;
 
+  // If client insists on sending these, server will accept but normally server computes them
   @IsOptional()
   @IsNumber()
-  startTime?: number; // optional, server computes if not provided
+  startTime?: number;
 
   @IsOptional()
   @IsNumber()
-  elapsedTime?: number; // computed server-side
+  elapsedTime?: number;
 
   @IsOptional()
   @IsNumber()
-  breakCount?: number; // server increments automatically
+  breakCount?: number;
 
   @IsOptional()
   @IsNumber()
-  breakElapsed?: number; // server computes
+  breakElapsed?: number;
 }
