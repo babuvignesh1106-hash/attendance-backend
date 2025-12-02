@@ -5,14 +5,12 @@ export class Attendance {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // Use timestamptz so Postgres stores timezone-aware timestamps (UTC by default)
-  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'timestamp' })
   startTime: Date;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   endTime: Date | null;
 
-  // workedDuration and totalBreakDuration stored in seconds (integers)
   @Column({ type: 'int', default: 0 })
   workedDuration: number;
 
@@ -22,7 +20,7 @@ export class Attendance {
   @Column({ type: 'int', default: 0 })
   totalBreakDuration: number;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   currentBreakStart: Date | null;
 
   @Column()

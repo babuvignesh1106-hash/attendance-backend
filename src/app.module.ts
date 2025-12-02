@@ -58,7 +58,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     PermissionModule,
     PayslipModule,
     StaffModule,
-    StaffModule,
     // your custom module
   ],
 })

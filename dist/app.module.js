@@ -67,7 +67,6 @@ exports.AppModule = AppModule = __decorate([
             permission_module_1.PermissionModule,
             payslip_module_1.PayslipModule,
             staff_module_1.StaffModule,
-            staff_module_1.StaffModule,
         ],
     })
 ], AppModule);

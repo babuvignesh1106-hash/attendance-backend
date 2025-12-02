@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
+import { Attendance } from './entities/attendance.entity';
 
 @Controller('attendance')
 export class AttendanceController {
