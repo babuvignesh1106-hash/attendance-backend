@@ -1,31 +1,35 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
+
 import { TeamModule } from './team/team.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { AuthModule } from './auth/auth.module';
+import { LeavesModule } from './leaves/leaves.module';
+import { PermissionModule } from './permission/permission.module';
+import { PayslipModule } from './payslip/payslip.module';
+import { StaffModule } from './staff/staff.module';
+
 import { Team } from './team/entities/team.entity';
 import { TeamMember } from './team/entities/team-member.entity';
-import { AttendanceModule } from './attendance/attendance.module';
 import { Attendance } from './attendance/entities/attendance.entity';
-import { AuthModule } from './auth/auth.module';
 import { User } from './user/user.entity';
-import { LeavesModule } from './leaves/leaves.module';
 import { Leave } from './leaves/entities/leave.entity';
-import { PermissionModule } from './permission/permission.module';
-import { Permission } from './permission/entities/permission.entity';
 import { LeaveBalance } from './leaves/entities/leave-balance.entity';
 import { LeaveRequest } from './leaves/entities/leave-request.entity';
-import { PayslipModule } from './payslip/payslip.module';
+import { Permission } from './permission/entities/permission.entity';
 import { Payslip } from './payslip/payslip.entity';
-import { StaffModule } from './staff/staff.module';
 import { Staff } from './staff/entities/staff.entity';
-import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), // loads .env globally
+    ConfigModule.forRoot({ isGlobal: true }),
 
-    // async config for TypeORM (reads env dynamically)
+    // ✅ REQUIRED for cron
     ScheduleModule.forRoot(),
+
+    // ✅ Correct TypeORM async config
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -45,9 +49,9 @@ import { ScheduleModule } from '@nestjs/schedule';
           Staff,
         ],
         ssl: {
-          rejectUnauthorized: false, // required for Neon/Supabase SSL
+          rejectUnauthorized: false,
         },
-        synchronize: true, // ⚠️ only for dev; use migrations in prod
+        synchronize: true, // ⚠️ dev only
       }),
     }),
 
@@ -58,7 +62,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     PermissionModule,
     PayslipModule,
     StaffModule,
-    // your custom module
   ],
 })
 export class AppModule {}
