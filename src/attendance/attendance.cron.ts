@@ -7,8 +7,11 @@ export class AttendanceCron {
   constructor(private readonly svc: AttendanceService) {}
 
   // Runs at 00:00 every day server time
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  handleMidnight() {
-    return this.svc.autoCheckoutUnclosed();
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+    timeZone: 'Asia/Kolkata',
+  })
+  async handleMidnight() {
+    console.log('CRON TRIGGERED AT', new Date().toISOString());
+    await this.svc.autoCheckoutUnclosed();
   }
 }

@@ -123,20 +123,17 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         const todayStartUtc = this.istDayStartToUTC();
         let closed = 0;
         for (const r of openSessions) {
-            const sessionDay = Math.floor((r.startTime.getTime() + this.IST_OFFSET) / this.DAY_MS) *
-                this.DAY_MS -
-                this.IST_OFFSET;
-            const sessionStartUTC = new Date(sessionDay);
-            if (sessionStartUTC.getTime() < todayStartUtc.getTime()) {
-                const endUTC = new Date(sessionStartUTC.getTime() + this.DAY_MS - 1);
+            const sessionDayStartUtc = this.istDayStartToUTC(r.startTime);
+            if (sessionDayStartUtc < todayStartUtc) {
+                const sessionDayEndUtc = this.istDayEndToUTC(r.startTime);
                 if (r.currentBreakStart) {
-                    const seconds = Math.round((endUTC.getTime() - r.currentBreakStart.getTime()) / 1000);
+                    const seconds = Math.round((sessionDayEndUtc.getTime() - r.currentBreakStart.getTime()) / 1000);
                     r.totalBreakDuration += Math.max(seconds, 0);
                     r.currentBreakStart = null;
                 }
-                const worked = Math.round((endUTC.getTime() - r.startTime.getTime()) / 1000);
-                r.endTime = endUTC;
-                r.workedDuration = Math.max(worked - r.totalBreakDuration, 0);
+                const workedSeconds = Math.round((sessionDayEndUtc.getTime() - r.startTime.getTime()) / 1000);
+                r.endTime = sessionDayEndUtc;
+                r.workedDuration = Math.max(workedSeconds - r.totalBreakDuration, 0);
                 await this.repo.save(r);
                 closed++;
             }

@@ -18,16 +18,19 @@ let AttendanceCron = class AttendanceCron {
     constructor(svc) {
         this.svc = svc;
     }
-    handleMidnight() {
-        return this.svc.autoCheckoutUnclosed();
+    async handleMidnight() {
+        console.log('CRON TRIGGERED AT', new Date().toISOString());
+        await this.svc.autoCheckoutUnclosed();
     }
 };
 exports.AttendanceCron = AttendanceCron;
 __decorate([
-    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_DAY_AT_MIDNIGHT),
+    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+        timeZone: 'Asia/Kolkata',
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], AttendanceCron.prototype, "handleMidnight", null);
 exports.AttendanceCron = AttendanceCron = __decorate([
     (0, common_1.Injectable)(),
