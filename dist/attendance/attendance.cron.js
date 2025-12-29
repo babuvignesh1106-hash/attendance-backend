@@ -18,8 +18,12 @@ let AttendanceCron = class AttendanceCron {
     constructor(svc) {
         this.svc = svc;
     }
+    async onModuleInit() {
+        console.log('Startup auto checkout running...');
+        await this.svc.autoCheckoutUnclosed();
+    }
     async handleMidnight() {
-        console.log('Auto checkout running at', new Date().toISOString());
+        console.log('Scheduled auto checkout running...');
         await this.svc.autoCheckoutUnclosed();
     }
 };
