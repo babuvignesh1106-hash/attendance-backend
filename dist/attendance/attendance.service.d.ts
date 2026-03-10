@@ -7,7 +7,6 @@ export declare class AttendanceService {
     private readonly DAY_MS;
     constructor(repo: Repository<Attendance>);
     private wrap;
-    private validateUsername;
     private istDayStartToUTC;
     private istDayEndToUTC;
     private findOpenRecord;
