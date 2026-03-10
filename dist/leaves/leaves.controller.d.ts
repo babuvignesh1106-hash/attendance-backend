@@ -6,14 +6,12 @@ export declare class LeavesController {
     constructor(leavesService: LeavesService);
     create(createLeaveDto: CreateLeaveDto): Promise<{
         message: string;
-        balance: import("./entities/leave-balance.entity").LeaveBalance;
-        leave?: undefined;
-    } | {
-        message: string;
         leave: import("./entities/leave-request.entity").LeaveRequest;
         balance: import("./entities/leave-balance.entity").LeaveBalance;
     }>;
     findAll(): Promise<import("./entities/leave-request.entity").LeaveRequest[]>;
     getBalance(name: string): Promise<import("./entities/leave-balance.entity").LeaveBalance>;
-    update(id: number, updateLeaveDto: UpdateLeaveDto): Promise<import("./entities/leave-request.entity").LeaveRequest | null>;
+    update(id: number, updateLeaveDto: UpdateLeaveDto): Promise<import("./entities/leave-request.entity").LeaveRequest | {
+        message: string;
+    }>;
 }

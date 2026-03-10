@@ -15,22 +15,25 @@ import { UpdateLeaveDto } from './dto/update-leave.dto';
 export class LeavesController {
   constructor(private readonly leavesService: LeavesService) {}
 
+  // Apply Leave
   @Post()
   create(@Body() createLeaveDto: CreateLeaveDto) {
     return this.leavesService.create(createLeaveDto);
   }
 
+  // Get All Leave Requests
   @Get()
   findAll() {
     return this.leavesService.findAll();
   }
 
-  // Get leave balance for an employee
+  // Get Employee Leave Balance
   @Get('balance/:name')
   getBalance(@Param('name') name: string) {
     return this.leavesService.getBalance(name);
   }
 
+  // Update Leave Status (Approve / Reject)
   @Put(':id')
   update(
     @Param('id', ParseIntPipe) id: number,

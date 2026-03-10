@@ -40,43 +40,8 @@ let LeavesService = class LeavesService {
         return balance;
     }
     async create(createLeaveDto) {
-        const { name, leaveType, fromDate, toDate } = createLeaveDto;
-        const days = Math.ceil((new Date(toDate).getTime() - new Date(fromDate).getTime()) /
-            (1000 * 60 * 60 * 24)) + 1;
+        const { name } = createLeaveDto;
         const balance = await this.getBalance(name);
-        let errorMessage = null;
-        switch (leaveType) {
-            case 'Sick Leave':
-                if (days > balance.sickLeave)
-                    errorMessage = `Not enough Sick Leave. You have ${balance.sickLeave} days remaining.`;
-                else
-                    balance.sickLeave -= days;
-                break;
-            case 'Personal Leave':
-                if (days > balance.personalLeave)
-                    errorMessage = `Not enough Personal Leave. You have ${balance.personalLeave} days remaining.`;
-                else
-                    balance.personalLeave -= days;
-                break;
-            case 'Earned Leave':
-                if (days > balance.earnedLeave)
-                    errorMessage = `Not enough Earned Leave. You have ${balance.earnedLeave} days remaining.`;
-                else
-                    balance.earnedLeave -= days;
-                break;
-            case 'Maternity Leave':
-                if (days > balance.maternityLeave)
-                    errorMessage = `Not enough Maternity Leave. You have ${balance.maternityLeave} days remaining.`;
-                else
-                    balance.maternityLeave -= days;
-                break;
-            default:
-                errorMessage = 'Invalid leave type.';
-        }
-        if (errorMessage) {
-            return { message: errorMessage, balance };
-        }
-        await this.leaveBalanceRepo.save(balance);
         const leave = this.leaveRequestRepo.create({
             ...createLeaveDto,
             status: 'Pending',
@@ -94,8 +59,48 @@ let LeavesService = class LeavesService {
     }
     async update(id, updateLeaveDto) {
         const leave = await this.leaveRequestRepo.findOne({ where: { id } });
-        if (!leave)
-            return null;
+        if (!leave) {
+            return { message: 'Leave request not found' };
+        }
+        if (updateLeaveDto.status === 'Approved' && leave.status !== 'Approved') {
+            const balance = await this.getBalance(leave.name);
+            const days = Math.ceil((new Date(leave.toDate).getTime() -
+                new Date(leave.fromDate).getTime()) /
+                (1000 * 60 * 60 * 24)) + 1;
+            let errorMessage = null;
+            switch (leave.leaveType) {
+                case 'Sick Leave':
+                    if (days > balance.sickLeave)
+                        errorMessage = `Not enough Sick Leave. Remaining: ${balance.sickLeave}`;
+                    else
+                        balance.sickLeave -= days;
+                    break;
+                case 'Personal Leave':
+                    if (days > balance.personalLeave)
+                        errorMessage = `Not enough Personal Leave. Remaining: ${balance.personalLeave}`;
+                    else
+                        balance.personalLeave -= days;
+                    break;
+                case 'Earned Leave':
+                    if (days > balance.earnedLeave)
+                        errorMessage = `Not enough Earned Leave. Remaining: ${balance.earnedLeave}`;
+                    else
+                        balance.earnedLeave -= days;
+                    break;
+                case 'Maternity Leave':
+                    if (days > balance.maternityLeave)
+                        errorMessage = `Not enough Maternity Leave. Remaining: ${balance.maternityLeave}`;
+                    else
+                        balance.maternityLeave -= days;
+                    break;
+                default:
+                    errorMessage = 'Invalid leave type';
+            }
+            if (errorMessage) {
+                return { message: errorMessage };
+            }
+            await this.leaveBalanceRepo.save(balance);
+        }
         Object.assign(leave, updateLeaveDto);
         return await this.leaveRequestRepo.save(leave);
     }

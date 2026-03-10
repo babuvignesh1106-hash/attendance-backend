@@ -11,13 +11,15 @@ export class LeavesService {
   constructor(
     @InjectRepository(LeaveRequest)
     private leaveRequestRepo: Repository<LeaveRequest>,
+
     @InjectRepository(LeaveBalance)
     private leaveBalanceRepo: Repository<LeaveBalance>,
   ) {}
 
-  // Get or create default leave balance
+  // Get or create employee leave balance
   async getBalance(name: string): Promise<LeaveBalance> {
     let balance = await this.leaveBalanceRepo.findOne({ where: { name } });
+
     if (!balance) {
       balance = this.leaveBalanceRepo.create({
         name,
@@ -26,64 +28,24 @@ export class LeavesService {
         earnedLeave: 12,
         maternityLeave: 0,
       });
+
       await this.leaveBalanceRepo.save(balance);
     }
+
     return balance;
   }
 
-  // Create a leave request and deduct from balance safely
+  // Create leave request (NO deduction here)
   async create(createLeaveDto: CreateLeaveDto) {
-    const { name, leaveType, fromDate, toDate } = createLeaveDto;
+    const { name } = createLeaveDto;
 
-    const days =
-      Math.ceil(
-        (new Date(toDate).getTime() - new Date(fromDate).getTime()) /
-          (1000 * 60 * 60 * 24),
-      ) + 1;
-
+    // Ensure balance exists
     const balance = await this.getBalance(name);
-
-    let errorMessage: string | null = null;
-
-    switch (leaveType) {
-      case 'Sick Leave':
-        if (days > balance.sickLeave)
-          errorMessage = `Not enough Sick Leave. You have ${balance.sickLeave} days remaining.`;
-        else balance.sickLeave -= days;
-        break;
-
-      case 'Personal Leave':
-        if (days > balance.personalLeave)
-          errorMessage = `Not enough Personal Leave. You have ${balance.personalLeave} days remaining.`;
-        else balance.personalLeave -= days;
-        break;
-
-      case 'Earned Leave':
-        if (days > balance.earnedLeave)
-          errorMessage = `Not enough Earned Leave. You have ${balance.earnedLeave} days remaining.`;
-        else balance.earnedLeave -= days;
-        break;
-
-      case 'Maternity Leave':
-        if (days > balance.maternityLeave)
-          errorMessage = `Not enough Maternity Leave. You have ${balance.maternityLeave} days remaining.`;
-        else balance.maternityLeave -= days;
-        break;
-
-      default:
-        errorMessage = 'Invalid leave type.';
-    }
-
-    if (errorMessage) {
-      return { message: errorMessage, balance };
-    }
-
-    await this.leaveBalanceRepo.save(balance);
 
     const leave = this.leaveRequestRepo.create({
       ...createLeaveDto,
       status: 'Pending',
-      submittedAt: new Date(), // <-- added
+      submittedAt: new Date(),
     });
 
     const savedLeave = await this.leaveRequestRepo.save(leave);
@@ -91,19 +53,70 @@ export class LeavesService {
     return {
       message: 'Leave request created successfully.',
       leave: savedLeave,
-      balance,
+      balance, // only showing balance, not deducting
     };
   }
-
   // Get all leave requests
   async findAll() {
     return this.leaveRequestRepo.find();
   }
 
-  // Update leave request (status or reason)
+  // Approve / Reject Leave
   async update(id: number, updateLeaveDto: UpdateLeaveDto) {
     const leave = await this.leaveRequestRepo.findOne({ where: { id } });
-    if (!leave) return null;
+
+    if (!leave) {
+      return { message: 'Leave request not found' };
+    }
+
+    // Deduct leave ONLY when approving
+    if (updateLeaveDto.status === 'Approved' && leave.status !== 'Approved') {
+      const balance = await this.getBalance(leave.name);
+
+      const days =
+        Math.ceil(
+          (new Date(leave.toDate).getTime() -
+            new Date(leave.fromDate).getTime()) /
+            (1000 * 60 * 60 * 24),
+        ) + 1;
+
+      let errorMessage: string | null = null;
+
+      switch (leave.leaveType) {
+        case 'Sick Leave':
+          if (days > balance.sickLeave)
+            errorMessage = `Not enough Sick Leave. Remaining: ${balance.sickLeave}`;
+          else balance.sickLeave -= days;
+          break;
+
+        case 'Personal Leave':
+          if (days > balance.personalLeave)
+            errorMessage = `Not enough Personal Leave. Remaining: ${balance.personalLeave}`;
+          else balance.personalLeave -= days;
+          break;
+
+        case 'Earned Leave':
+          if (days > balance.earnedLeave)
+            errorMessage = `Not enough Earned Leave. Remaining: ${balance.earnedLeave}`;
+          else balance.earnedLeave -= days;
+          break;
+
+        case 'Maternity Leave':
+          if (days > balance.maternityLeave)
+            errorMessage = `Not enough Maternity Leave. Remaining: ${balance.maternityLeave}`;
+          else balance.maternityLeave -= days;
+          break;
+
+        default:
+          errorMessage = 'Invalid leave type';
+      }
+
+      if (errorMessage) {
+        return { message: errorMessage };
+      }
+
+      await this.leaveBalanceRepo.save(balance);
+    }
 
     Object.assign(leave, updateLeaveDto);
     return await this.leaveRequestRepo.save(leave);

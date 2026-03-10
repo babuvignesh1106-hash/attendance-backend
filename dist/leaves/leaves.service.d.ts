@@ -10,13 +10,11 @@ export declare class LeavesService {
     getBalance(name: string): Promise<LeaveBalance>;
     create(createLeaveDto: CreateLeaveDto): Promise<{
         message: string;
-        balance: LeaveBalance;
-        leave?: undefined;
-    } | {
-        message: string;
         leave: LeaveRequest;
         balance: LeaveBalance;
     }>;
     findAll(): Promise<LeaveRequest[]>;
-    update(id: number, updateLeaveDto: UpdateLeaveDto): Promise<LeaveRequest | null>;
+    update(id: number, updateLeaveDto: UpdateLeaveDto): Promise<LeaveRequest | {
+        message: string;
+    }>;
 }

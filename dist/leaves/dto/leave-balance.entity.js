@@ -9,28 +9,42 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TeamMember = void 0;
+exports.LeaveBalance = void 0;
 const typeorm_1 = require("typeorm");
-const team_entity_1 = require("./team.entity");
-let TeamMember = class TeamMember {
+let LeaveBalance = class LeaveBalance {
     id;
     name;
-    team;
+    sickLeave;
+    personalLeave;
+    earnedLeave;
+    maternityLeave;
 };
-exports.TeamMember = TeamMember;
+exports.LeaveBalance = LeaveBalance;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)(),
     __metadata("design:type", Number)
-], TeamMember.prototype, "id", void 0);
+], LeaveBalance.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ unique: true }),
     __metadata("design:type", String)
-], TeamMember.prototype, "name", void 0);
+], LeaveBalance.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => team_entity_1.Team, (team) => team.members),
-    __metadata("design:type", team_entity_1.Team)
-], TeamMember.prototype, "team", void 0);
-exports.TeamMember = TeamMember = __decorate([
+    (0, typeorm_1.Column)({ default: 6 }),
+    __metadata("design:type", Number)
+], LeaveBalance.prototype, "sickLeave", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 6 }),
+    __metadata("design:type", Number)
+], LeaveBalance.prototype, "personalLeave", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 12 }),
+    __metadata("design:type", Number)
+], LeaveBalance.prototype, "earnedLeave", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], LeaveBalance.prototype, "maternityLeave", void 0);
+exports.LeaveBalance = LeaveBalance = __decorate([
     (0, typeorm_1.Entity)()
-], TeamMember);
-//# sourceMappingURL=team-member.entity.js.map
+], LeaveBalance);
+//# sourceMappingURL=leave-balance.entity.js.map
