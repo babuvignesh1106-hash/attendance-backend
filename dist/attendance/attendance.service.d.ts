@@ -6,61 +6,15 @@ export declare class AttendanceService {
     private readonly IST_OFFSET;
     private readonly DAY_MS;
     constructor(repo: Repository<Attendance>);
-    private toISTString;
     private wrap;
     private istDayStartToUTC;
     private istDayEndToUTC;
     private findOpenRecord;
-    checkIn(username: string): Promise<{
-        startTime: string | null;
-        endTime: string | null;
-        currentBreakStart: string | null;
-        id: number;
-        username: string;
-        workedDuration: number;
-        breakCount: number;
-        totalBreakDuration: number;
-    }>;
-    startBreak(username: string): Promise<{
-        startTime: string | null;
-        endTime: string | null;
-        currentBreakStart: string | null;
-        id: number;
-        username: string;
-        workedDuration: number;
-        breakCount: number;
-        totalBreakDuration: number;
-    }>;
-    endBreak(username: string): Promise<{
-        startTime: string | null;
-        endTime: string | null;
-        currentBreakStart: string | null;
-        id: number;
-        username: string;
-        workedDuration: number;
-        breakCount: number;
-        totalBreakDuration: number;
-    }>;
-    checkOut(username: string): Promise<{
-        startTime: string | null;
-        endTime: string | null;
-        currentBreakStart: string | null;
-        id: number;
-        username: string;
-        workedDuration: number;
-        breakCount: number;
-        totalBreakDuration: number;
-    }>;
-    getAll(): Promise<{
-        startTime: string | null;
-        endTime: string | null;
-        currentBreakStart: string | null;
-        id: number;
-        username: string;
-        workedDuration: number;
-        breakCount: number;
-        totalBreakDuration: number;
-    }[]>;
+    checkIn(username: string): Promise<Attendance>;
+    startBreak(username: string): Promise<Attendance>;
+    endBreak(username: string): Promise<Attendance>;
+    checkOut(username: string): Promise<Attendance>;
+    getAll(): Promise<Attendance[]>;
     autoCheckoutUnclosed(): Promise<{
         closed: number;
     }>;

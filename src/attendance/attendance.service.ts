@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, IsNull } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Attendance } from './entities/attendance.entity';
 
 @Injectable()
@@ -19,26 +19,11 @@ export class AttendanceService {
   // HELPERS
   // ---------------------------------------
 
-  /** Convert UTC Date → IST string WITHOUT TIMEZONE (important!) */
-  private toISTString(date: Date | null): string | null {
-    if (!date) return null;
-
-    return new Date(date.getTime() + this.IST_OFFSET)
-      .toISOString()
-      .replace('Z', ''); // remove timezone to prevent React conversion
-  }
-
-  /** Convert entity to IST string-safe version */
   private wrap(att: Attendance) {
-    return {
-      ...att,
-      startTime: this.toISTString(att.startTime),
-      endTime: this.toISTString(att.endTime),
-      currentBreakStart: this.toISTString(att.currentBreakStart),
-    };
+    return att;
   }
 
-  /** IST day start → UTC */
+  /** Convert IST day start to UTC */
   private istDayStartToUTC(date = new Date()): Date {
     const istMs = date.getTime() + this.IST_OFFSET;
     const istDate = new Date(istMs);
@@ -46,13 +31,13 @@ export class AttendanceService {
     return new Date(istDate.getTime() - this.IST_OFFSET);
   }
 
-  /** IST day end → UTC */
+  /** Convert IST day end to UTC */
   private istDayEndToUTC(date = new Date()): Date {
     const start = this.istDayStartToUTC(date);
     return new Date(start.getTime() + this.DAY_MS - 1);
   }
 
-  /** Find latest open record (endTime = null) */
+  /** Find active session */
   private findOpenRecord(username: string) {
     return this.repo.findOne({
       where: { username, endTime: IsNull() },
@@ -61,19 +46,20 @@ export class AttendanceService {
   }
 
   // ---------------------------------------
-  // CHECK-IN
+  // CHECK IN
   // ---------------------------------------
 
   async checkIn(username: string) {
-    if (!username) throw new BadRequestException('Username is required');
+    if (!username) throw new BadRequestException('Username required');
 
     const open = await this.findOpenRecord(username);
+
     if (open) throw new BadRequestException('Already checked in');
 
     const record = await this.repo.save(
       this.repo.create({
         username,
-        startTime: new Date(), // UTC now
+        startTime: new Date(),
         endTime: null,
         workedDuration: 0,
         breakCount: 0,
@@ -86,12 +72,14 @@ export class AttendanceService {
   }
 
   // ---------------------------------------
-  // BREAK START
+  // START BREAK
   // ---------------------------------------
 
   async startBreak(username: string) {
     const record = await this.findOpenRecord(username);
+
     if (!record) throw new BadRequestException('No active session');
+
     if (record.currentBreakStart)
       throw new BadRequestException('Break already running');
 
@@ -102,41 +90,49 @@ export class AttendanceService {
   }
 
   // ---------------------------------------
-  // BREAK END
+  // END BREAK
   // ---------------------------------------
 
   async endBreak(username: string) {
     const record = await this.findOpenRecord(username);
+
     if (!record) throw new BadRequestException('No active session');
+
     if (!record.currentBreakStart)
-      throw new BadRequestException('No break active');
+      throw new BadRequestException('No break running');
 
     const now = new Date();
+
     const seconds = Math.round(
       (now.getTime() - record.currentBreakStart.getTime()) / 1000,
     );
 
     record.totalBreakDuration += Math.max(seconds, 0);
+
     record.currentBreakStart = null;
 
     return this.wrap(await this.repo.save(record));
   }
 
   // ---------------------------------------
-  // CHECK-OUT
+  // CHECK OUT
   // ---------------------------------------
 
   async checkOut(username: string) {
     const record = await this.findOpenRecord(username);
+
     if (!record) throw new BadRequestException('No active session');
 
     const now = new Date();
 
+    // close running break
     if (record.currentBreakStart) {
       const seconds = Math.round(
         (now.getTime() - record.currentBreakStart.getTime()) / 1000,
       );
+
       record.totalBreakDuration += Math.max(seconds, 0);
+
       record.currentBreakStart = null;
     }
 
@@ -145,6 +141,7 @@ export class AttendanceService {
     );
 
     record.endTime = now;
+
     record.workedDuration = Math.max(
       workedSeconds - record.totalBreakDuration,
       0,
@@ -158,12 +155,15 @@ export class AttendanceService {
   // ---------------------------------------
 
   async getAll() {
-    const records = await this.repo.find({ order: { startTime: 'DESC' } });
+    const records = await this.repo.find({
+      order: { startTime: 'DESC' },
+    });
+
     return records.map((r) => this.wrap(r));
   }
 
   // ---------------------------------------
-  // AUTO CLOSE OLD SESSIONS
+  // AUTO CHECKOUT (INDIAN MIDNIGHT)
   // ---------------------------------------
 
   async autoCheckoutUnclosed(): Promise<{ closed: number }> {
@@ -174,22 +174,22 @@ export class AttendanceService {
     });
 
     const todayStartUtc = this.istDayStartToUTC();
+
     let closed = 0;
 
     for (const r of openSessions) {
-      // 👇 get IST day start of session safely
       const sessionDayStartUtc = this.istDayStartToUTC(r.startTime);
 
-      // 🔥 this comparison will now WORK
       if (sessionDayStartUtc < todayStartUtc) {
         const sessionDayEndUtc = this.istDayEndToUTC(r.startTime);
 
-        // close running break
         if (r.currentBreakStart) {
           const seconds = Math.round(
             (sessionDayEndUtc.getTime() - r.currentBreakStart.getTime()) / 1000,
           );
+
           r.totalBreakDuration += Math.max(seconds, 0);
+
           r.currentBreakStart = null;
         }
 
@@ -198,9 +198,11 @@ export class AttendanceService {
         );
 
         r.endTime = sessionDayEndUtc;
+
         r.workedDuration = Math.max(workedSeconds - r.totalBreakDuration, 0);
 
         await this.repo.save(r);
+
         closed++;
       }
     }

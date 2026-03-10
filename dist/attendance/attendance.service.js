@@ -26,20 +26,8 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
     constructor(repo) {
         this.repo = repo;
     }
-    toISTString(date) {
-        if (!date)
-            return null;
-        return new Date(date.getTime() + this.IST_OFFSET)
-            .toISOString()
-            .replace('Z', '');
-    }
     wrap(att) {
-        return {
-            ...att,
-            startTime: this.toISTString(att.startTime),
-            endTime: this.toISTString(att.endTime),
-            currentBreakStart: this.toISTString(att.currentBreakStart),
-        };
+        return att;
     }
     istDayStartToUTC(date = new Date()) {
         const istMs = date.getTime() + this.IST_OFFSET;
@@ -59,7 +47,7 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
     }
     async checkIn(username) {
         if (!username)
-            throw new common_1.BadRequestException('Username is required');
+            throw new common_1.BadRequestException('Username required');
         const open = await this.findOpenRecord(username);
         if (open)
             throw new common_1.BadRequestException('Already checked in');
@@ -89,7 +77,7 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         if (!record)
             throw new common_1.BadRequestException('No active session');
         if (!record.currentBreakStart)
-            throw new common_1.BadRequestException('No break active');
+            throw new common_1.BadRequestException('No break running');
         const now = new Date();
         const seconds = Math.round((now.getTime() - record.currentBreakStart.getTime()) / 1000);
         record.totalBreakDuration += Math.max(seconds, 0);
@@ -112,7 +100,9 @@ let AttendanceService = AttendanceService_1 = class AttendanceService {
         return this.wrap(await this.repo.save(record));
     }
     async getAll() {
-        const records = await this.repo.find({ order: { startTime: 'DESC' } });
+        const records = await this.repo.find({
+            order: { startTime: 'DESC' },
+        });
         return records.map((r) => this.wrap(r));
     }
     async autoCheckoutUnclosed() {

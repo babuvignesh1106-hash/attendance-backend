@@ -11,15 +11,12 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const config_1 = require("@nestjs/config");
 const schedule_1 = require("@nestjs/schedule");
-const team_module_1 = require("./team/team.module");
 const attendance_module_1 = require("./attendance/attendance.module");
 const auth_module_1 = require("./auth/auth.module");
 const leaves_module_1 = require("./leaves/leaves.module");
 const permission_module_1 = require("./permission/permission.module");
 const payslip_module_1 = require("./payslip/payslip.module");
 const staff_module_1 = require("./staff/staff.module");
-const team_entity_1 = require("./team/entities/team.entity");
-const team_member_entity_1 = require("./team/entities/team-member.entity");
 const attendance_entity_1 = require("./attendance/entities/attendance.entity");
 const user_entity_1 = require("./user/user.entity");
 const leave_entity_1 = require("./leaves/entities/leave.entity");
@@ -43,8 +40,6 @@ exports.AppModule = AppModule = __decorate([
                     type: 'postgres',
                     url: config.get('DATABASE_URL'),
                     entities: [
-                        team_entity_1.Team,
-                        team_member_entity_1.TeamMember,
                         attendance_entity_1.Attendance,
                         user_entity_1.User,
                         leave_entity_1.Leave,
@@ -60,7 +55,6 @@ exports.AppModule = AppModule = __decorate([
                     synchronize: true,
                 }),
             }),
-            team_module_1.TeamModule,
             attendance_module_1.AttendanceModule,
             leaves_module_1.LeavesModule,
             auth_module_1.AuthModule,
