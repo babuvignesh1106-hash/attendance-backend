@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const user_entity_1 = require("./user.entity");
+const common_2 = require("@nestjs/common");
 let UserService = class UserService {
     userRepository;
     constructor(userRepository) {
@@ -31,6 +32,21 @@ let UserService = class UserService {
     }
     async findAll() {
         return this.userRepository.find();
+    }
+    async findById(id) {
+        const user = await this.userRepository.findOne({ where: { id } });
+        if (!user) {
+            throw new common_2.NotFoundException('User not found');
+        }
+        const { password, ...rest } = user;
+        return rest;
+    }
+    async deleteUser(id) {
+        const result = await this.userRepository.delete(id);
+        if (result.affected === 0) {
+            throw new Error('User not found');
+        }
+        return { message: 'User deleted successfully' };
     }
 };
 exports.UserService = UserService;

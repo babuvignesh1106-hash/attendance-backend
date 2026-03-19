@@ -25,6 +25,7 @@ const leave_request_entity_1 = require("./leaves/entities/leave-request.entity")
 const permission_entity_1 = require("./permission/entities/permission.entity");
 const payslip_entity_1 = require("./payslip/payslip.entity");
 const staff_entity_1 = require("./staff/entities/staff.entity");
+const user_module_1 = require("./user/user.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,7 +35,7 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({ isGlobal: true }),
             schedule_1.ScheduleModule.forRoot(),
             typeorm_1.TypeOrmModule.forRootAsync({
-                imports: [config_1.ConfigModule],
+                imports: [config_1.ConfigModule, user_module_1.UserModule],
                 inject: [config_1.ConfigService],
                 useFactory: (config) => ({
                     type: 'postgres',
@@ -61,6 +62,7 @@ exports.AppModule = AppModule = __decorate([
             permission_module_1.PermissionModule,
             payslip_module_1.PayslipModule,
             staff_module_1.StaffModule,
+            user_module_1.UserModule,
         ],
     })
 ], AppModule);

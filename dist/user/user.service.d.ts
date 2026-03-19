@@ -6,4 +6,8 @@ export declare class UserService {
     createUser(data: Partial<User>): Promise<User>;
     findByEmail(email: string): Promise<User | null>;
     findAll(): Promise<User[]>;
+    findById(id: number): Promise<Partial<User>>;
+    deleteUser(id: number): Promise<{
+        message: string;
+    }>;
 }

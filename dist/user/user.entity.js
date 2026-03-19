@@ -39,7 +39,10 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "password", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: 'employee' }),
+    (0, typeorm_1.Column)({
+        default: 'employee',
+        nullable: false,
+    }),
     __metadata("design:type", String)
 ], User.prototype, "role", void 0);
 __decorate([

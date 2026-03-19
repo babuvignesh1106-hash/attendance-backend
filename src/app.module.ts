@@ -16,6 +16,7 @@ import { LeaveRequest } from './leaves/entities/leave-request.entity';
 import { Permission } from './permission/entities/permission.entity';
 import { Payslip } from './payslip/payslip.entity';
 import { Staff } from './staff/entities/staff.entity';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { Staff } from './staff/entities/staff.entity';
 
     // ✅ Correct TypeORM async config
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
+      imports: [ConfigModule, UserModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
@@ -54,6 +55,7 @@ import { Staff } from './staff/entities/staff.entity';
     PermissionModule,
     PayslipModule,
     StaffModule,
+    UserModule,
   ],
 })
 export class AppModule {}
