@@ -10,14 +10,12 @@ export declare class AuthController {
     }>;
     login(loginDto: LoginDto): Promise<{
         access_token: string;
-        user: {
-            id: number;
-            email: string;
-            name: string;
-            role: string;
-            designation: string;
-            employeeId: string;
-            dateOfJoining: string;
-        };
+        user: import("../user/user.entity").User;
+    }>;
+    forgotPassword(email: string): Promise<{
+        message: string;
+    }>;
+    resetPassword(token: string, password: string): Promise<{
+        message: string;
     }>;
 }
