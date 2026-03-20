@@ -10,5 +10,4 @@ export declare class UserService {
     deleteUser(id: number): Promise<{
         message: string;
     }>;
-    updateUser(data: Partial<User>): Promise<User>;
 }

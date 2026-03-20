@@ -47,85 +47,59 @@ const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcrypt"));
 const user_service_1 = require("../user/user.service");
-const mail_service_1 = require("../mail/mail.service");
-const config_1 = require("@nestjs/config");
 let AuthService = class AuthService {
     userService;
     jwtService;
-    mailService;
-    configService;
-    constructor(userService, jwtService, mailService, configService) {
+    constructor(userService, jwtService) {
         this.userService = userService;
         this.jwtService = jwtService;
-        this.mailService = mailService;
-        this.configService = configService;
     }
-    async signup(data) {
-        const existingUser = await this.userService.findByEmail(data.email);
+    async signup(signupDto) {
+        const { email, password, name, role, designation, employeeId, dateOfJoining, } = signupDto;
+        const existingUser = await this.userService.findByEmail(email);
         if (existingUser) {
             throw new common_1.UnauthorizedException('User already exists');
         }
-        const hashedPassword = await bcrypt.hash(data.password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
         const user = await this.userService.createUser({
-            ...data,
+            email,
             password: hashedPassword,
+            name: name || 'User',
+            role,
+            designation,
+            employeeId,
+            dateOfJoining,
         });
         return { message: 'Signup successful', user };
     }
-    async login(data) {
-        const user = await this.userService.findByEmail(data.email);
+    async login(loginDto) {
+        const { email, password } = loginDto;
+        const user = await this.userService.findByEmail(email);
         if (!user)
             throw new common_1.UnauthorizedException('Invalid credentials');
-        const isMatch = await bcrypt.compare(data.password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch)
             throw new common_1.UnauthorizedException('Invalid credentials');
         const payload = { email: user.email, sub: user.id, role: user.role };
         const token = await this.jwtService.signAsync(payload);
         return {
             access_token: token,
-            user,
-        };
-    }
-    async forgotPassword(email) {
-        const user = await this.userService.findByEmail(email);
-        if (!user) {
-            return { message: 'If the email exists, a reset link has been sent' };
-        }
-        const token = await this.jwtService.signAsync({ sub: user.id, email: user.email, type: 'reset' }, {
-            secret: this.configService.get('JWT_RESET_SECRET'),
-            expiresIn: '15m',
-        });
-        await this.mailService.sendResetPasswordEmail(user.email, token);
-        return { message: 'Reset password email sent' };
-    }
-    async resetPassword(token, password) {
-        try {
-            const payload = await this.jwtService.verifyAsync(token, {
-                secret: this.configService.get('JWT_RESET_SECRET'),
-            });
-            console.log('PAYLOAD:', payload);
-            const user = await this.userService.findById(payload.sub);
-            console.log('USER:', user);
-            const hashedPassword = await bcrypt.hash(password, 10);
-            const updated = await this.userService.updateUser({
+            user: {
                 id: user.id,
-                password: hashedPassword,
-            });
-            console.log('UPDATED:', updated);
-            return { message: 'Password reset successful' };
-        }
-        catch (err) {
-            console.error(err);
-            throw new common_1.BadRequestException('Invalid or expired token');
-        }
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                designation: user.designation,
+                employeeId: user.employeeId,
+                dateOfJoining: user.dateOfJoining,
+            },
+        };
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [user_service_1.UserService,
-        jwt_1.JwtService,
-        mail_service_1.MailService,
-        config_1.ConfigService])
+        jwt_1.JwtService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

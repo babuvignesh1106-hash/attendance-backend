@@ -48,16 +48,6 @@ let UserService = class UserService {
         }
         return { message: 'User deleted successfully' };
     }
-    async updateUser(data) {
-        const user = await this.userRepository.findOne({
-            where: { id: data.id },
-        });
-        if (!user) {
-            throw new Error('User not found');
-        }
-        Object.assign(user, data);
-        return this.userRepository.save(user);
-    }
 };
 exports.UserService = UserService;
 exports.UserService = UserService = __decorate([
