@@ -1,10 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-  IsString,
-  IsNumber,
-  IsOptional,
-  IsDateString,
-} from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsDateString } from 'class-validator';
 
 export class CreatePayslipDto {
   @Type(() => Number) // ✅ FIX

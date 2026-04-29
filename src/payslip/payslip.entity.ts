@@ -14,9 +14,8 @@ const decimalTransformer = {
 export class Payslip {
   @PrimaryGeneratedColumn()
   id!: number;
-
-  @Column({ name: 'employee_id', default: 0 })
-  employeeId!: number;
+  @Column({ name: 'employee_id', type: 'varchar', default: '' })
+  employeeId!: string;
 
   @Column({ name: 'employee_name', default: '' })
   employeeName!: string;
